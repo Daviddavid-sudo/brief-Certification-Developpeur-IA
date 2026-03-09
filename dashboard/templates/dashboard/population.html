@@ -1,0 +1,19 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Population Jeune - Dashboard{% endblock %}
+
+{% block content %}
+    <h1>Démographie : Population < 18 ans</h1>
+    <p style="color: #666;">Analyse de la concentration des jeunes par département français.</p>
+    <hr>
+    
+    <div class="map-wrapper" style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 10px;">
+        {% if data_map %}
+            <img src="data:image/png;base64,{{ data_map }}" alt="Carte Population" style="max-width: 100%; height: auto; border-radius: 5px;">
+        {% else %}
+            <div style="padding: 50px; color: #999;">
+                <p>📏 Chargement de la carte démographique impossible...</p>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

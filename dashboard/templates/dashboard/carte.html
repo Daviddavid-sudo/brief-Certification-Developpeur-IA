@@ -1,98 +1,24 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Commercial & Météo</title>
-    <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            text-align: center; 
-            background: #f0f2f5; 
-            margin: 0;
-            padding: 20px;
-        }
-        .container { 
-            max-width: 1000px;
-            margin: 20px auto;
-            background: white; 
-            padding: 30px; 
-            border-radius: 15px; 
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1); 
-        }
-        
-        /* Style de la barre de navigation */
-        .nav-tabs {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 15px;
-        }
-        .nav-link {
-            text-decoration: none;
-            color: #666;
-            padding: 10px 20px;
-            border-radius: 8px;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-        .nav-link:hover {
-            background: #e9ecef;
-            color: #007bff;
-        }
-        .nav-link.active {
-            background: #007bff;
-            color: white;
-        }
+{% extends 'dashboard/base.html' %}
 
-        h1 { color: #333; margin-bottom: 10px; }
-        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
-        
-        .map-wrapper {
-            background: #fff;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-        }
-        img { max-width: 100%; height: auto; border-radius: 5px; }
-        
-        .btn-admin {
-            display: inline-block;
-            margin-top: 20px;
-            text-decoration: none;
-            color: #007bff;
-            font-size: 0.9em;
-        }
-        .btn-admin:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
+{% block title %}Dashboard Ventes{% endblock %}
 
-    <div class="container">
-        <nav class="nav-tabs">
-            <a href="{% url 'home' %}" class="nav-link active">📊 Carte des Ventes</a>
-            <a href="{% url 'meteo_calendrier' %}" class="nav-link">☀️ Météo 2025</a>
-        </nav>
-
-        <h1>Analyse Géographique des Ventes</h1>
-        <p style="color: #666;">Répartition du Chiffre d'Affaires par département français</p>
-        <hr>
-        
-        <div class="map-wrapper">
-            {% if data_map %}
-                <img src="data:image/png;base64,{{ data_map }}" alt="Carte des ventes">
-            {% else %}
-                <div style="padding: 50px; color: #999;">
-                    <p>📏 Aucune donnée disponible pour générer la carte.</p>
-                </div>
-            {% endif %}
-        </div>
-
-        <br>
-        <a href="/admin" class="btn-admin">⚙️ Accéder à l'administration</a>
+{% block content %}
+    <h1>Analyse Géographique des Ventes</h1>
+    <p style="color: #666;">Répartition du Chiffre d'Affaires par département français</p>
+    <hr>
+    
+    <div class="map-wrapper" style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 10px;">
+        {% if data_map %}
+            <img src="data:image/png;base64,{{ data_map }}" alt="Carte des ventes" style="max-width: 100%; height: auto; border-radius: 5px;">
+        {% else %}
+            <div style="padding: 50px; color: #999;">
+                <p>📏 Aucune donnée disponible pour générer la carte des ventes.</p>
+            </div>
+        {% endif %}
     </div>
 
-</body>
-</html>
+    <br>
+    <a href="/admin" style="display: inline-block; margin-top: 20px; text-decoration: none; color: #007bff; font-size: 0.9em;">
+        ⚙️ Accéder à l'administration
+    </a>
+{% endblock %}

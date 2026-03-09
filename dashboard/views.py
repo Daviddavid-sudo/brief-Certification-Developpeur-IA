@@ -95,3 +95,36 @@ def consultation_meteo(request):
         'date_selectionnee': date_selectionnee,
         'data_map': data_map
     })
+
+def carte_population_view(request):
+    path_geojson = os.path.join(settings.BASE_DIR, 'data', 'departements.geojson')
+    france = gpd.read_file(path_geojson)
+
+    # Données fictives (Pour l'exemple : % de moins de 18 ans par département)
+    # Dans un vrai projet, tu pourrais importer un CSV de l'INSEE
+    data_pop = {
+        '75': 18.5, '59': 24.2, '13': 22.1, '69': 21.8, '93': 28.5, '33': 20.4
+    }
+    df_pop = pd.DataFrame(list(data_pop.items()), columns=['code_dept', 'taux_jeunes'])
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+    
+    # Fusion avec le GeoJSON
+    france = france.merge(df_pop, left_on='code', right_on='code_dept', how='left')
+    
+    # Tracer la carte
+    france.plot(column='taux_jeunes', ax=ax, legend=True, cmap='YlGn', 
+                missing_kwds={'color': '#f5f5f5'}, 
+                legend_kwds={'label': "% de population < 18 ans"})
+
+    ax.set_axis_off()
+    ax.set_title("Répartition de la Population Jeune par Département")
+
+    # Conversion Image
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    buf.seek(0)
+    uri = urllib.parse.quote(base64.b64encode(buf.read()))
+    plt.close()
+
+    return render(request, 'dashboard/population.html', {'data_map': uri})

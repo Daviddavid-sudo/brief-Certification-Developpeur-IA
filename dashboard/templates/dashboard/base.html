@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mon Dashboard{% endblock %}</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 20px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+        
+        .nav-tabs { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        .nav-link { text-decoration: none; color: #666; padding: 10px 20px; border-radius: 8px; font-weight: 600; transition: 0.3s; }
+        .nav-link:hover { background: #e9ecef; }
+        .nav-link.active { background: #007bff; color: white; }
+        .nav-link.active.pop { background: #28a745; } /* Vert pour population */
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <nav class="nav-tabs">
+            <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">📊 Ventes</a>
+            <a href="{% url 'meteo_calendrier' %}" class="nav-link {% if request.resolver_match.url_name == 'meteo_calendrier' %}active{% endif %}">☀️ Météo</a>
+            <a href="{% url 'population' %}" class="nav-link pop {% if request.resolver_match.url_name == 'population' %}active{% endif %}">👶 Population</a>
+        </nav>
+
+        {% block content %}
+        {% endblock %}
+    </div>
+
+</body>
+</html>
