@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mon Dashboard Météo</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f4f4f4; }
+        .container { margin-top: 50px; background: white; display: inline-block; padding: 20px; border-radius: 10px; shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        img { max-width: 100%; height: auto; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Analyse Géographique des Ventes</h1>
+        <hr>
+        
+        {% if data_map %}
+            <img src="data:image/png;base64,{{ data_map }}" alt="Carte des ventes">
+        {% else %}
+            <p>Aucune donnée disponible pour générer la carte.</p>
+        {% endif %}
+
+        <br>
+        <a href="/admin">Accéder à l'admin pour ajouter des données</a>
+    </div>
+
+</body>
+</html>

@@ -16,7 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from dashboard.views import carte_ventes_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', carte_ventes_view, name='home'), # L'accueil est maintenant la carte
+    path('carte/', carte_ventes_view, name='carte_ventes'),
 ]
+
