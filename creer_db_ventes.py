@@ -1,26 +1,33 @@
-import sqlite3
+import os
+import django
 
-def ajouter_table_ventes():
-    # On se connecte à la même base que pour la météo
-    conn = sqlite3.connect('meteo_complete.db')
-    cursor = conn.cursor()
+# 1. On dit à ce script d'utiliser les réglages de ton projet Django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mon_projet.settings')
+django.setup()
 
-    # Création de la table activite_commerciale
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS activite_commerciale (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            bv2022 TEXT,       -- Bassin de vie
-            ville TEXT,        -- Ville (doit correspondre au nom dans la table météo)
-            ca_tot REAL,       -- Chiffre d'affaires
-            mois INTEGER,
-            annee INTEGER,
-            UNIQUE(ville, mois, annee) -- Sécurité doublons
+from dashboard.models import ActiviteCommerciale
+
+def remplir_ventes_dans_django():
+    # Données de test
+    ventes = [
+        {"ville": "Paris", "code_dept": "75", "ca_tot": 52000, "mois": 3, "annee": 2024, "bv2022": "75056"},
+        {"ville": "Lille", "code_dept": "59", "ca_tot": 31000, "mois": 3, "annee": 2024, "bv2022": "59350"},
+        {"ville": "Marseille", "code_dept": "13", "ca_tot": 45000, "mois": 3, "annee": 2024, "bv2022": "13055"},
+    ]
+
+    for data in ventes:
+        # On utilise l'ORM Django : magique, ça écrit au bon endroit !
+        ActiviteCommerciale.objects.update_or_create(
+            ville=data['ville'],
+            annee=data['annee'],
+            mois=data['mois'],
+            defaults={
+                'ca_tot': data['ca_tot'],
+                'code_dept': data['code_dept'],
+                'bv2022': data['bv2022']
+            }
         )
-    ''')
-
-    conn.commit()
-    conn.close()
-    print("Table 'activite_commerciale' ajoutée à la base météo !")
+    print("✅ Les ventes ont été injectées dans la base Django (db.sqlite3) !")
 
 if __name__ == "__main__":
-    ajouter_table_ventes()
+    remplir_ventes_dans_django()
