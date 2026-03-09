@@ -47,3 +47,23 @@ def carte_ventes_view(request):
     plt.close() # Important : ferme la figure pour libérer la mémoire
 
     return render(request, 'dashboard/carte.html', {'data_map': uri})
+
+from django.shortcuts import render
+from .models import MeteoArchive
+
+def consultation_meteo(request):
+    resultats = None
+    date_selectionnee = request.GET.get('date_choisie') # Récupère la date du calendrier
+
+    if date_selectionnee:
+        # La date arrive au format "YYYY-MM-DD"
+        # On la découpe pour correspondre à nos champs annee, mois, jour
+        annee, mois, jour = map(int, date_selectionnee.split('-'))
+        
+        # On cherche toutes les villes pour cette date précise
+        resultats = MeteoArchive.objects.filter(annee=annee, mois=mois, jour=jour)
+
+    return render(request, 'dashboard/meteo_calendrier.html', {
+        'resultats': resultats,
+        'date_selectionnee': date_selectionnee
+    })

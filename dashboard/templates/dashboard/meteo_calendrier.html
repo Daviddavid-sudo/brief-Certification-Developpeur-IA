@@ -1,0 +1,37 @@
+<h2>Consulter les températures de 2025</h2>
+
+<form method="GET" action="">
+    <label for="date_choisie">Choisir une date :</label>
+    <input type="date" id="date_choisie" name="date_choisie" 
+           min="2025-01-01" max="2025-12-31" 
+           value="{{ date_selectionnee }}">
+    <button type="submit">Afficher les températures</button>
+</form>
+
+<hr>
+
+{% if resultats %}
+    <h3>Températures pour le {{ date_selectionnee }} :</h3>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Ville</th>
+                <th>Température Min</th>
+                <th>Température Max</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in resultats %}
+            <tr>
+                <td>{{ r.ville }}</td>
+                <td><strong>{{ r.temp_min }}°C</strong></td>
+                <td>{{ r.temp_max }}°C</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% elif date_selectionnee %}
+    <p>Aucune donnée trouvée pour cette date.</p>
+{% else %}
+    <p>Sélectionnez une date pour voir les résultats.</p>
+{% endif %}

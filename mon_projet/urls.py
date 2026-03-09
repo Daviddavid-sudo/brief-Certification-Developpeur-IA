@@ -16,11 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from dashboard.views import carte_ventes_view
+# On importe directement les fonctions depuis l'application dashboard
+from dashboard.views import carte_ventes_view, consultation_meteo 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', carte_ventes_view, name='home'), # L'accueil est maintenant la carte
+    path('', carte_ventes_view, name='home'), 
     path('carte/', carte_ventes_view, name='carte_ventes'),
+    path('meteo_calendrier/', consultation_meteo, name='meteo_calendrier'),
 ]
-
