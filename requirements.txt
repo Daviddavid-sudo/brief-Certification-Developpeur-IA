@@ -4,3 +4,4 @@ python-dotenv
 geopandas
 pandas
 matplotlib
+streamlit
