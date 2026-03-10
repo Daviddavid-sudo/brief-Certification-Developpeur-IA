@@ -1,7 +1,7 @@
 from django.db import models
 
 class MeteoArchive(models.Model):
-    ville = models.CharField(max_length=100)
+    dep = models.CharField(max_length=100)
     annee = models.IntegerField()
     mois = models.IntegerField()
     jour = models.IntegerField()
@@ -9,7 +9,7 @@ class MeteoArchive(models.Model):
     temp_min = models.FloatField()
 
     class Meta:
-        unique_together = ('ville', 'annee', 'mois', 'jour')
+        unique_together = ('dep', 'annee', 'mois', 'jour')
 
 class ActiviteCommerciale(models.Model):
     # Ajout du champ manquant pour la carte

@@ -1,50 +1,39 @@
 {% extends 'dashboard/base.html' %}
 
-{% block title %}Météo 2025 - Dashboard{% endblock %}
+{% block title %}Météo 2025 - Carte Interactive{% endblock %}
 
 {% block content %}
-    <h1>Historique Météo 2025</h1>
+    <h1>Historique Météo France 2025</h1>
 
-    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #e9ecef;">
         <form method="GET" action="">
-            <label for="date_choisie">Sélectionnez une date : </label>
+            <label for="date_choisie" style="font-weight: bold; margin-right: 10px;">Sélectionnez une date : </label>
             <input type="date" id="date_choisie" name="date_choisie" 
                    min="2025-01-01" max="2025-12-31" 
                    value="{{ date_selectionnee }}"
                    onchange="this.form.submit()"
-                   style="padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
+                   style="padding: 10px; border-radius: 5px; border: 1px solid #ddd; cursor: pointer;">
         </form>
     </div>
 
     {% if date_selectionnee %}
-        {% if data_map %}
-            <div style="margin-bottom: 30px;">
-                <h3>Situation thermique au {{ date_selectionnee }}</h3>
-                <img src="data:image/png;base64,{{ data_map }}" alt="Carte Météo" style="max-width: 100%; border-radius: 10px; border: 1px solid #eee;">
-            </div>
-        {% endif %}
-
-        {% if resultats %}
-            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-                <thead>
-                    <tr style="background: #f8f9fa;">
-                        <th style="padding: 12px; border-bottom: 2px solid #dee2e6;">Ville</th>
-                        <th style="padding: 12px; border-bottom: 2px solid #dee2e6;">Temp. Min</th>
-                        <th style="padding: 12px; border-bottom: 2px solid #dee2e6;">Temp. Max</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for r in resultats %}
-                    <tr>
-                        <td style="padding: 12px; border-bottom: 1px solid #eee;">{{ r.ville }}</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #eee; color: #007bff; font-weight: bold;">{{ r.temp_min }}°C</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #eee; color: #dc3545; font-weight: bold;">{{ r.temp_max }}°C</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% endif %}
+        <div style="text-align: center; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <h3 style="margin-bottom: 20px; color: #333;">Situation thermique au {{ date_selectionnee }}</h3>
+            
+            {% if data_map %}
+                <img src="data:image/png;base64,{{ data_map }}" 
+                     alt="Carte Météo" 
+                     style="max-width: 100%; height: auto; border-radius: 10px; border: 1px solid #eee;">
+            {% else %}
+                <div style="padding: 50px; border: 2px dashed #ccc; border-radius: 10px; color: #888;">
+                    <p>⚠️ Aucune donnée disponible pour cette date ou erreur lors de la génération de la carte.</p>
+                </div>
+            {% endif %}
+        </div>
     {% else %}
-        <p style="color: #666;">Choisissez une date pour afficher les données.</p>
+        <div style="text-align: center; padding: 50px; background: #fff; border-radius: 10px; border: 1px solid #eee;">
+            <p style="color: #666; font-size: 1.1em;">📅 Veuillez choisir une date dans le calendrier ci-dessus pour visualiser la carte des températures.</p>
+        </div>
     {% endif %}
+
 {% endblock %}

@@ -3,10 +3,22 @@ import io
 import urllib, base64
 import pandas as pd
 import geopandas as gpd
+import matplotlib
+from datetime import datetime
+matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 from django.shortcuts import render
 from django.conf import settings
-from .models import ActiviteCommerciale, MeteoArchive
+from .models import ActiviteCommerciale, MeteoArchive, Population
+
+# Helper function to convert Matplotlib plots to URI strings
+def get_plot_uri():
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    buf.seek(0)
+    uri = urllib.parse.quote(base64.b64encode(buf.read()))
+    plt.close()
+    return uri
 
 # --- VUE 1 : CARTE DES VENTES ---
 def carte_ventes_view(request):
@@ -29,17 +41,10 @@ def carte_ventes_view(request):
 
     ax.set_axis_off()
     ax.set_title("Répartition du Chiffre d'Affaires par Département")
-
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    uri = urllib.parse.quote(base64.b64encode(buf.read()))
-    plt.close()
-
-    return render(request, 'dashboard/carte.html', {'data_map': uri})
+    
+    return render(request, 'dashboard/carte.html', {'data_map': get_plot_uri()})
 
 
-# --- VUE 2 : CALENDRIER MÉTÉO + CARTE THERMIQUE ---
 def consultation_meteo(request):
     resultats = None
     data_map = None
@@ -47,47 +52,70 @@ def consultation_meteo(request):
 
     if date_selectionnee:
         try:
-            annee, mois, jour = map(int, date_selectionnee.split('-'))
-            resultats = MeteoArchive.objects.filter(annee=annee, mois=mois, jour=jour)
+            # 1. Conversion de la chaîne de caractères en objet date
+            dt_obj = datetime.strptime(date_selectionnee, "%Y-%m-%d")
             
-            # Préparation de la carte de France
+            # 2. Récupération des données filtrées
+            resultats = MeteoArchive.objects.filter(
+                annee=dt_obj.year, 
+                mois=dt_obj.month, 
+                jour=dt_obj.day
+            )
+            
+            # 3. Chargement du fond de carte
             path_geojson = os.path.join(settings.BASE_DIR, 'data', 'departements.geojson')
             france = gpd.read_file(path_geojson)
             
-            fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+            # Configuration de la figure Matplotlib
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
 
             if resultats.exists():
-                df_meteo = pd.DataFrame(list(resultats.values('ville', 'temp_min')))
-                
-                # Mapping Ville -> Code Département
-                mapping_villes_dept = {
-                    "Paris": "75", "Lille": "59", "Marseille": "13", "Lyon": "69"
-                }
-                df_meteo['code_dept'] = df_meteo['ville'].map(mapping_villes_dept)
+                # 4. Préparation des données météo
+                df_meteo = pd.DataFrame(list(resultats.values('dep', 'temp_min', 'temp_max')))
 
-                # Fusion des données météo avec la carte
-                france = france.merge(df_meteo, left_on='code', right_on='code_dept', how='left')
+                # --- LE FIX CRUCIAL ---
+                # On s'assure que le code département a 2 chiffres (ex: '1' -> '01')
+                # pour que la fusion avec le GeoJSON fonctionne à 100%
+                df_meteo['dep'] = df_meteo['dep'].apply(lambda x: x.zfill(2) if (len(x) == 1 and x.isdigit()) else x)
+
+                # 5. Fusion (Merge) entre la carte et les données
+                # Note: Vérifiez si votre GeoJSON utilise 'code' ou 'code_dept'
+                france = france.merge(df_meteo, left_on='code', right_on='dep', how='left')
+
+                # 6. Dessin de la carte
+                france.plot(
+                    column='temp_min', 
+                    ax=ax, 
+                    legend=True, 
+                    cmap='coolwarm',
+                    missing_kwds={'color': '#f0f0f0'}, # Gris clair si donnée manquante
+                    legend_kwds={
+                        'label': "Température Minimale (°C)",
+                        'orientation': "horizontal",
+                        'pad': 0.05
+                    }
+                )
                 
-                # Affichage avec dégradé du bleu au rouge (coolwarm)
-                france.plot(column='temp_min', ax=ax, legend=True, cmap='coolwarm',
-                            missing_kwds={'color': '#f0f0f0'}, # Gris très clair pour le reste
-                            legend_kwds={'label': "Température Minimale (°C)"})
+                # Ajout des étiquettes de température (optionnel)
+                # for idx, row in france.iterrows():
+                #    if pd.notnull(row['temp_min']):
+                #        ax.annotate(text=f"{row['temp_min']}°", xy=row['geometry'].centroid.coords[0], ha='center', fontsize=8)
+
             else:
-                # Si pas de données pour cette date, on affiche la carte vide
-                france.plot(ax=ax, color='lightgrey')
-                ax.annotate("Données météo non disponibles", xy=(0.5, 0.5), xycoords='axes fraction', ha='center')
+                # Si aucune donnée, on affiche la carte vide en gris
+                france.plot(ax=ax, color='#f0f0f0', edgecolor='white')
+                ax.text(0.5, 0.5, "Aucune donnée pour cette date", transform=ax.transAxes, ha='center', color='red')
 
             ax.set_axis_off()
-            ax.set_title(f"Températures en France le {date_selectionnee}")
+            ax.set_title(f"Météo France - {dt_obj.strftime('%d/%m/%Y')}", fontsize=16, pad=20)
+            
+            # 7. Génération de l'image
+            data_map = get_plot_uri()
+            plt.close(fig) # Libère la RAM du serveur
 
-            # Conversion Image
-            buf = io.BytesIO()
-            plt.savefig(buf, format='png', bbox_inches='tight')
-            buf.seek(0)
-            data_map = urllib.parse.quote(base64.b64encode(buf.read()))
-            plt.close()
-
-        except (ValueError, TypeError):
+        except Exception as e:
+            # Debug: Affiche l'erreur précise dans votre console terminal
+            print(f"DEBUG ERROR: {e}")
             pass
 
     return render(request, 'dashboard/meteo_calendrier.html', {
@@ -96,35 +124,31 @@ def consultation_meteo(request):
         'data_map': data_map
     })
 
+
+# --- VUE 3 : POPULATION (RÉELLE INSEE) ---
 def carte_population_view(request):
     path_geojson = os.path.join(settings.BASE_DIR, 'data', 'departements.geojson')
     france = gpd.read_file(path_geojson)
 
-    # Données fictives (Pour l'exemple : % de moins de 18 ans par département)
-    # Dans un vrai projet, tu pourrais importer un CSV de l'INSEE
-    data_pop = {
-        '75': 18.5, '59': 24.2, '13': 22.1, '69': 21.8, '93': 28.5, '33': 20.4
-    }
-    df_pop = pd.DataFrame(list(data_pop.items()), columns=['code_dept', 'taux_jeunes'])
+    # Récupération des vraies données de la base de données
+    pop_qs = Population.objects.all().values('dep', 'pop')
+    df_pop = pd.DataFrame(list(pop_qs))
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 10))
     
-    # Fusion avec le GeoJSON
-    france = france.merge(df_pop, left_on='code', right_on='code_dept', how='left')
-    
-    # Tracer la carte
-    france.plot(column='taux_jeunes', ax=ax, legend=True, cmap='YlGn', 
-                missing_kwds={'color': '#f5f5f5'}, 
-                legend_kwds={'label': "% de population < 18 ans"})
+    if not df_pop.empty:
+        # Fusion avec le GeoJSON sur les codes département
+        france = france.merge(df_pop, left_on='code', right_on='dep', how='left')
+        
+        france.plot(column='pop', ax=ax, legend=True, cmap='YlGnBu', 
+                    missing_kwds={'color': '#f5f5f5'}, 
+                    legend_kwds={'label': "Nombre d'habitants (Source INSEE)"})
+    else:
+        france.plot(ax=ax, color='lightgrey')
+        ax.annotate("Base de données vide. Lancez l'importation CSV.", 
+                    xy=(0.5, 0.5), xycoords='axes fraction', ha='center')
 
     ax.set_axis_off()
-    ax.set_title("Répartition de la Population Jeune par Département")
+    ax.set_title("Population réelle par Département")
 
-    # Conversion Image
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    uri = urllib.parse.quote(base64.b64encode(buf.read()))
-    plt.close()
-
-    return render(request, 'dashboard/population.html', {'data_map': uri})
+    return render(request, 'dashboard/population.html', {'data_map': get_plot_uri()})
