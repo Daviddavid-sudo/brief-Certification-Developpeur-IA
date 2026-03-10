@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 15s # How often to check for data
+
+scrape_configs:
+  - job_name: 'django-app'
+    metrics_path: '/metrics'
+    static_configs:
+      # Use 'host.docker.internal' if running Django locally 
+      # and Prometheus in Docker
+      - targets: ['host.docker.internal:8000']
