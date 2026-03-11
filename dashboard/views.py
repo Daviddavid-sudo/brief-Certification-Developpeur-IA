@@ -13,6 +13,7 @@ from django.conf import settings
 from .models import ActiviteCommerciale, MeteoArchive, Population
 from django.http import JsonResponse
 from django.shortcuts import render
+from dashboard.services import ask_llm_about_db, execute_ai_sql
 
 
 # Helper function to convert Matplotlib plots to URI strings
@@ -187,12 +188,23 @@ def carte_population_view(request):
 
 def ai_assistant_view(request):
     if request.method == "POST":
-        user_text = request.POST.get('message', '')
+        user_query = request.POST.get('message', '')
         
-        # This is where you would normally call an API (like Gemini or OpenAI)
-        # For now, let's create a mock response based on your dashboard
-        ai_response = f"You asked about: '{user_text}'. I am analyzing the population and turnover data for 2024..."
+        # 1. Get the AI's "Thought" (which includes the SQL)
+        ai_raw_output = ask_llm_about_db(user_query)
         
-        return JsonResponse({'response': ai_response})
+        # 2. Try to execute the SQL found in that output
+        db_data = execute_ai_sql(ai_raw_output)
+        
+        # 3. Format the final response
+        if isinstance(db_data, dict):
+            # If we got data, format it as a simple string or HTML table
+            cols = ", ".join(db_data['columns'])
+            rows = " | ".join([str(r) for r in db_data['rows']])
+            final_response = f"Résultats ({cols}) : {rows}"
+        else:
+            final_response = ai_raw_output
+
+        return JsonResponse({'response': final_response})
 
     return render(request, 'dashboard/ai_assistant.html')
