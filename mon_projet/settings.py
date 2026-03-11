@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_prometheus',
+    'rest_framework',
+    'rest_framework.authtoken',
     'dashboard',
     "api",
 ]

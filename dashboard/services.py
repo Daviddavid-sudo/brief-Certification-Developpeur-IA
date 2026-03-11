@@ -7,8 +7,6 @@ from django.db import connection
 from langchain_groq import ChatGroq
 from langchain_community.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
-
-
 from prometheus_client import Histogram, Counter
 
 # AI monitoring metrics
@@ -27,22 +25,28 @@ AI_ERRORS = Counter(
     "Total number of AI assistant errors"
 )
 
-# Monitoring Setup
 logger = logging.getLogger('ai_monitoring')
-# Ensure logs directory exists in your root
-LOG_FILE = os.path.join(settings.BASE_DIR, 'logs', 'ai_metrics.log')
 
 def ask_llm_about_db(question):
     start_time = time.time()
     AI_REQUEST_COUNT.inc()
 
     try:
-        # DB setup
-        db_name = settings.DATABASES['default']['NAME']
-        db_path = os.path.join(settings.BASE_DIR, db_name) if not os.path.isabs(db_name) else db_name
+        # DB setup: Dynamic URI based on Django Settings
+        db_conf = settings.DATABASES['default']
+        
+        # Check if we are using PostgreSQL (CI/Production) or SQLite (Local)
+        if 'postgresql' in db_conf['ENGINE']:
+            # Construct PostgreSQL URI for LangChain
+            uri = f"postgresql://{db_conf['USER']}:{db_conf['PASSWORD']}@{db_conf['HOST']}:{db_conf['PORT']}/{db_conf['NAME']}"
+        else:
+            # Construct SQLite URI for Local Development
+            db_name = db_conf['NAME']
+            db_path = os.path.join(settings.BASE_DIR, db_name) if not os.path.isabs(db_name) else db_name
+            uri = f"sqlite:///{db_path}"
 
         db = SQLDatabase.from_uri(
-            f"sqlite:///{db_path}",
+            uri,
             include_tables=['dashboard_population', 'dashboard_activitecommerciale']
         )
 
@@ -81,6 +85,7 @@ def ask_llm_about_db(question):
 
     except Exception as e:
         AI_ERRORS.inc()
+        logger.error(f"AI Error: {str(e)}")
         return f"Erreur d'analyse : {str(e)}"
 
 def execute_ai_sql(ai_response):

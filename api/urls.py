@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import ai_query, AIEndpointView
+from .views import AIEndpointView, ai_query
 
 urlpatterns = [
-    path("ai-query/", ai_query),  # Your original endpoint
-    path("ai/", AIEndpointView.as_view(), name="ai_api_endpoint"),  # Test endpoint
+    # This 'name' must match the reverse() in your tests
+    path('api/ai-endpoint/', AIEndpointView.as_view(), name='ai_api_endpoint'),
+    path('api/ai-query/', ai_query, name='ai_query'),
 ]
