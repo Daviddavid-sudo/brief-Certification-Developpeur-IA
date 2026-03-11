@@ -2,37 +2,49 @@ name: Django CI
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [develop]
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [develop]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
     services:
-      # If you use Postgres later, you'd add it here. 
-      # For now, we use the default SQLite.
-      
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U testuser -d test_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
+      - uses: actions/checkout@v3
 
-    - name: Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Run Tests
-      run: |
-        python manage.py test
-      env:
-        # Add dummy env vars so the CI doesn't crash 
-        # looking for your Groq Key
-        GROQ_API_KEY: "dummy_key_for_testing"
-        SECRET_KEY: "ci-secret-key"
-        DEBUG: "True"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgres://testuser:testpass@localhost:5432/test_db
+        run: |
+          python manage.py migrate
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgres://testuser:testpass@localhost:5432/test_db
+        run: |
+          python manage.py test
