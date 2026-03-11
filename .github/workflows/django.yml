@@ -14,7 +14,6 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          # Use secrets if available, otherwise use these defaults for the CI environment
           POSTGRES_USER: ${{ secrets.POSTGRES_USER || 'django_user' }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'django_password' }}
           POSTGRES_DB: certificate_dev
@@ -34,7 +33,7 @@ jobs:
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'django_password' }}
       POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: 5432
-      # Update 'mon_projet' to your actual project folder name containing settings.py
+      # IMPORTANT: Change 'mon_projet' to the actual name of your project folder
       DJANGO_SETTINGS_MODULE: mon_projet.settings 
 
     steps:
@@ -67,4 +66,4 @@ jobs:
 
       - name: CD Deployment Simulation
         if: success() && github.ref == 'refs/heads/main'
-        run: echo "Tests passed on main branch! Ready for production deployment."
+        run: echo "Tests passed! Main branch ready for deployment."
