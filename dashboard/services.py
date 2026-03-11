@@ -8,6 +8,25 @@ from langchain_groq import ChatGroq
 from langchain_community.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
 
+
+from prometheus_client import Histogram, Counter
+
+# AI monitoring metrics
+AI_REQUEST_LATENCY = Histogram(
+    "ai_request_latency_seconds",
+    "Latency of AI database queries"
+)
+
+AI_REQUEST_COUNT = Counter(
+    "ai_request_total",
+    "Total number of AI assistant queries"
+)
+
+AI_ERRORS = Counter(
+    "ai_errors_total",
+    "Total number of AI assistant errors"
+)
+
 # Monitoring Setup
 logger = logging.getLogger('ai_monitoring')
 # Ensure logs directory exists in your root
@@ -15,51 +34,53 @@ LOG_FILE = os.path.join(settings.BASE_DIR, 'logs', 'ai_metrics.log')
 
 def ask_llm_about_db(question):
     start_time = time.time()
-    
+    AI_REQUEST_COUNT.inc()
+
     try:
-        # 1. SETUP DB
+        # DB setup
         db_name = settings.DATABASES['default']['NAME']
         db_path = os.path.join(settings.BASE_DIR, db_name) if not os.path.isabs(db_name) else db_name
+
         db = SQLDatabase.from_uri(
-            f"sqlite:///{db_path}", 
+            f"sqlite:///{db_path}",
             include_tables=['dashboard_population', 'dashboard_activitecommerciale']
         )
 
-        # 2. SETUP LLM
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
+            AI_ERRORS.inc()
             return "Error: GROQ_API_KEY non configurée."
-            
-        llm = ChatGroq(groq_api_key=api_key, model_name="llama-3.3-70b-versatile", temperature=0)
 
-        # 3. CONFIGURE THE CHAIN
+        llm = ChatGroq(
+            groq_api_key=api_key,
+            model_name="llama-3.3-70b-versatile",
+            temperature=0
+        )
+
         db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True, return_direct=False)
-        
+
         if hasattr(db_chain, 'allow_dangerous_requests'):
             db_chain.allow_dangerous_requests = True
 
-        # 4. PROMPT (MLOps context)
         full_prompt = (
-            f"Tu es un analyste expert. Crée la requête SQL, exécute-la, "
-            f"et donne la réponse finale en français.\n"
+            "Tu es un analyste expert. Crée la requête SQL, exécute-la, "
+            "et donne la réponse finale en français.\n"
             f"Question: {question}"
         )
 
-        # 5. EXECUTION
         if hasattr(db_chain, 'invoke'):
             output = db_chain.invoke({"query": full_prompt})
             final_text = output["result"] if isinstance(output, dict) else output
         else:
             final_text = db_chain.run(full_prompt)
 
-        # 6. MONITORING (Satisfies 'Monitorer ses métriques')
         latency = time.time() - start_time
-        with open(LOG_FILE, 'a') as f:
-            f.write(f"Latency: {latency:.2f}s | Query: {question[:50]}\n")
+        AI_REQUEST_LATENCY.observe(latency)
 
         return final_text
 
     except Exception as e:
+        AI_ERRORS.inc()
         return f"Erreur d'analyse : {str(e)}"
 
 def execute_ai_sql(ai_response):

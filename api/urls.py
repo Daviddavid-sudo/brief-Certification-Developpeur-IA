@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import AIChatAPIView
+from .views import ai_query
 
 urlpatterns = [
-    path('ask/', AIChatAPIView.as_view(), name='ai-api-ask'),
+    path("ai-query/", ai_query),
 ]
