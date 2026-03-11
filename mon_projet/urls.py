@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 # On importe directement les fonctions depuis l'application dashboard
-from dashboard.views import carte_ventes_view, consultation_meteo, carte_population_view
+from dashboard.views import carte_ventes_view, consultation_meteo, carte_population_view, ai_assistant_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,4 +25,5 @@ urlpatterns = [
     path('carte/', carte_ventes_view, name='carte_ventes'),
     path('meteo_calendrier/', consultation_meteo, name='meteo_calendrier'),
     path('population/', carte_population_view, name='population'),
+    path('assistant/', ai_assistant_view, name='ai_assistant'),
 ]

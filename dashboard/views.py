@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 from django.shortcuts import render
 from django.conf import settings
 from .models import ActiviteCommerciale, MeteoArchive, Population
+from django.http import JsonResponse
+from django.shortcuts import render
+
 
 # Helper function to convert Matplotlib plots to URI strings
 def get_plot_uri():
@@ -180,3 +183,16 @@ def carte_population_view(request):
     ax.set_title("Population réelle par Département")
 
     return render(request, 'dashboard/population.html', {'data_map': get_plot_uri()})
+
+
+def ai_assistant_view(request):
+    if request.method == "POST":
+        user_text = request.POST.get('message', '')
+        
+        # This is where you would normally call an API (like Gemini or OpenAI)
+        # For now, let's create a mock response based on your dashboard
+        ai_response = f"You asked about: '{user_text}'. I am analyzing the population and turnover data for 2024..."
+        
+        return JsonResponse({'response': ai_response})
+
+    return render(request, 'dashboard/ai_assistant.html')

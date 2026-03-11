@@ -11,8 +11,11 @@
         .nav-tabs { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
         .nav-link { text-decoration: none; color: #666; padding: 10px 20px; border-radius: 8px; font-weight: 600; transition: 0.3s; }
         .nav-link:hover { background: #e9ecef; }
-        .nav-link.active { background: #007bff; color: white; }
-        .nav-link.active.pop { background: #28a745; } /* Vert pour population */
+        
+        /* Active States colors */
+        .nav-link.active { background: #007bff; color: white; } /* Bleu - Ventes */
+        .nav-link.active.pop { background: #28a745; }            /* Vert - Population */
+        .nav-link.active.ai { background: #6f42c1; }             /* Violet - AI Assistant */
     </style>
 </head>
 <body>
@@ -22,6 +25,7 @@
             <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">📊 Ventes</a>
             <a href="{% url 'meteo_calendrier' %}" class="nav-link {% if request.resolver_match.url_name == 'meteo_calendrier' %}active{% endif %}">☀️ Météo</a>
             <a href="{% url 'population' %}" class="nav-link pop {% if request.resolver_match.url_name == 'population' %}active{% endif %}">👶 Population</a>
+            <a href="{% url 'ai_assistant' %}" class="nav-link ai {% if request.resolver_match.url_name == 'ai_assistant' %}active{% endif %}">🤖 Assistant IA</a>
         </nav>
 
         {% block content %}

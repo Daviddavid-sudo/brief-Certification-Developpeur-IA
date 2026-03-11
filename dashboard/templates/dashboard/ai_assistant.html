@@ -1,0 +1,55 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+    <h1>Assistant IA - Analyse des Ventes</h1>
+    <p style="color: #666;">Posez des questions sur les tendances de population ou le CA par département.</p>
+    <hr>
+
+    <div id="chat-container" style="background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 20px; min-height: 300px; display: flex; flex-direction: column;">
+        <div id="response-area" style="flex-grow: 1; margin-bottom: 20px; font-size: 1.1em; line-height: 1.6;">
+            <p style="color: #999; font-style: italic;">La réponse de l'IA s'affichera ici...</p>
+        </div>
+
+        <form id="ai-form" style="display: flex; gap: 10px;">
+            {% csrf_token %}
+            <input type="text" id="user-message" name="message" placeholder="Ex: Quel est le département le plus peuplé ?" 
+                   style="flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 5px; outline: none;">
+            <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                Envoyer
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('ai-form').onsubmit = function(e) {
+        e.preventDefault();
+        const messageInput = document.getElementById('user-message');
+        const responseArea = document.getElementById('response-area');
+        const message = messageInput.value;
+
+        if (!message) return;
+
+        // Show loading state
+        responseArea.innerHTML = '<p style="color: #007bff;">L\'IA réfléchit...</p>';
+        
+        // AJAX Request
+        fetch('', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'message=' + encodeURIComponent(message)
+        })
+        .then(response => response.json())
+        .then(data => {
+            responseArea.innerHTML = `<div style="background: #f1f1f1; padding: 15px; border-radius: 8px; border-left: 5px solid #28a745;">
+                                        <strong>Réponse :</strong><br>${data.response}
+                                      </div>`;
+            messageInput.value = ''; // Clear input
+        });
+    };
+</script>
+{% endblock %}
