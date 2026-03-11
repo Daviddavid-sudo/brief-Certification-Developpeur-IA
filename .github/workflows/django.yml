@@ -2,9 +2,9 @@ name: Django CI
 
 on:
   push:
-    branches: [develop]
+    branches: [develop, main]
   pull_request:
-    branches: [develop]
+    branches: [develop, main]
 
 jobs:
   test:
@@ -13,38 +13,52 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpass
-          POSTGRES_DB: test_db
+          POSTGRES_USER: myuser
+          POSTGRES_PASSWORD: mypassword
+          POSTGRES_DB: mydb
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U testuser -d test_db"
+          --health-cmd "pg_isready -U myuser -d mydb"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: 3.11
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U myuser; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
       - name: Run migrations
         env:
-          DATABASE_URL: postgres://testuser:testpass@localhost:5432/test_db
-        run: |
-          python manage.py migrate
+          DB_NAME: mydb
+          DB_USER: myuser
+          DB_PASSWORD: mypassword
+          DB_HOST: localhost
+          DB_PORT: 5432
+        run: python manage.py migrate
 
       - name: Run tests
         env:
-          DATABASE_URL: postgres://testuser:testpass@localhost:5432/test_db
-        run: |
-          python manage.py test
+          DB_NAME: mydb
+          DB_USER: myuser
+          DB_PASSWORD: mypassword
+          DB_HOST: localhost
+          DB_PORT: 5432
+        run: python manage.py test
