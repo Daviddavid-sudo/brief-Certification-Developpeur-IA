@@ -1,5 +1,7 @@
 requests
 django
+django-prometheus
+prometheus-client
 python-dotenv
 geopandas
 pandas
