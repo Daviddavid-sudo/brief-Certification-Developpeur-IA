@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 # On importe directement les fonctions depuis l'application dashboard
 from dashboard.views import carte_ventes_view, consultation_meteo, carte_population_view, ai_assistant_view
 
@@ -26,4 +26,5 @@ urlpatterns = [
     path('meteo_calendrier/', consultation_meteo, name='meteo_calendrier'),
     path('population/', carte_population_view, name='population'),
     path('assistant/', ai_assistant_view, name='ai_assistant'),
+    path('api/v1/', include('api.urls')),
 ]
