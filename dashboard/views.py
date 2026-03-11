@@ -6,7 +6,6 @@ import geopandas as gpd
 import matplotlib
 import logging
 from datetime import datetime
-from django.utils import timezone
 
 # Configure Matplotlib for server-side rendering
 matplotlib.use('Agg') 
@@ -15,6 +14,9 @@ import matplotlib.pyplot as plt
 from django.shortcuts import render
 from django.conf import settings
 from django.http import JsonResponse
+from django.utils import timezone
+from django.db import connection  # Added for Health Check
+
 from .models import ActiviteCommerciale, MeteoArchive, Population
 from dashboard.services import ask_llm_about_db, execute_ai_sql
 
@@ -30,6 +32,37 @@ def get_plot_uri():
     uri = urllib.parse.quote(base64.b64encode(buf.read()))
     plt.close()
     return uri
+
+# --- MLOPS : HEALTH CHECK (Week 5 Requirement) ---
+def health_check(request):
+    """
+    Checks the status of vital components. 
+    Used for monitoring liveness and simulating incidents.
+    """
+    checks = {}
+    is_healthy = True
+
+    # 1. Database Connectivity Check
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        checks["database"] = "UP"
+    except Exception as e:
+        checks["database"] = f"DOWN: {str(e)}"
+        is_healthy = False
+
+    # 2. AI API Configuration Check
+    api_key = os.getenv("GROQ_API_KEY")
+    checks["ai_service"] = "READY" if api_key else "MISSING_KEY"
+    if not api_key:
+        is_healthy = False
+
+    status_code = 200 if is_healthy else 503
+    return JsonResponse({
+        "status": "healthy" if is_healthy else "unhealthy",
+        "timestamp": datetime.now().isoformat(),
+        "components": checks
+    }, status=status_code)
 
 # --- VUE 1 : VENTES (CARTE) ---
 def carte_ventes_view(request):
@@ -154,24 +187,17 @@ def ai_assistant_view(request):
     if request.method == "POST":
         user_query = request.POST.get('message', '').strip()
         
-        # Log the start of the request (Monitoring)
         logger.info(f"Requête utilisateur reçue: {user_query}")
 
-        # 1. Get the AI's Analysis (Thought process + SQL)
         ai_raw_output = ask_llm_about_db(user_query)
-        
-        # 2. Extract and execute SQL safely (Security Check)
         db_data = execute_ai_sql(ai_raw_output)
         
-        # 3. Final Formatting
         if isinstance(db_data, dict) and db_data['rows']:
             cols = ", ".join(db_data['columns'])
-            # Formatting rows for better readability
             formatted_rows = [str(dict(zip(db_data['columns'], row))) for row in db_data['rows'][:3]]
             data_str = " | ".join(formatted_rows)
             final_response = f"J'ai analysé les données. Voici les résultats ({cols}) : {data_str}"
         else:
-            # Fallback to the natural language response from the AI
             final_response = ai_raw_output
 
         return JsonResponse({'response': final_response})
