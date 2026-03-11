@@ -9,15 +9,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    
     services:
       postgres:
         image: postgres:15
         env:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_DB: certificate_dev
         ports:
           - 5432:5432
+        # Health check to ensure the container is ready before the job starts
         options: >-
           --health-cmd "pg_isready -U ${{ secrets.POSTGRES_USER }} -d certificate_dev"
           --health-interval 10s
@@ -29,7 +31,8 @@ jobs:
       POSTGRES_DB: certificate_dev
       POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      POSTGRES_HOST: postgres   # ✅ must match service name
+      # Use localhost because the service port is mapped to the runner host
+      POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
 
     steps:
@@ -48,6 +51,8 @@ jobs:
 
       - name: Wait for PostgreSQL
         run: |
+          # The runner needs the client installed to use pg_isready
+          sudo apt-get update && sudo apt-get install -y postgresql-client
           until pg_isready -h ${{ env.POSTGRES_HOST }} -p ${{ env.POSTGRES_PORT }} -U ${{ env.POSTGRES_USER }}; do
             echo "Waiting for PostgreSQL..."
             sleep 2
