@@ -92,15 +92,14 @@ WSGI_APPLICATION = 'mon_projet.wsgi.application'
 
 import os
 
-import os
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('POSTGRES_DB', 'certificate_dev'),
-        'USER': os.getenv('POSTGRES_USER'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-        'HOST': os.getenv('POSTGRES_HOST', '127.0.0.1'), # Change 'postgres' to '127.0.0.1'
+        'USER': os.getenv('POSTGRES_USER', 'user'),           # Default to 'user'
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'password'), # Default to 'password'
+        'HOST': os.getenv('POSTGRES_HOST', 'db'),             # 'db' is the name in docker-compose
         'PORT': os.getenv('POSTGRES_PORT', '5432'),
     }
 }

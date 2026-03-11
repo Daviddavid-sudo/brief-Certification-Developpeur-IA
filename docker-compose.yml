@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # 1. PostgreSQL Database
   db:
     image: postgres:15
     volumes:
@@ -16,21 +15,37 @@ services:
       timeout: 5s
       retries: 5
 
-  # 2. Django Application
   web:
     build: .
+    # FIXED: Corrected path to data/insee.csv and ensured sequential execution
+    command: >
+      sh -c "python manage.py migrate && 
+             python manage.py import_insee data/insee.csv && 
+             python manage.py seed_data && 
+             python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     environment:
+      - POSTGRES_DB=certificate_dev
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
       - GROQ_API_KEY=${GROQ_API_KEY}
-      - DATABASE_URL=postgres://user:password@db:5432/certificate_dev
     depends_on:
       db:
         condition: service_healthy
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .venv
+            - __pycache__
 
-  # 3. Prometheus Monitoring
   prometheus:
     image: prom/prometheus:latest
     volumes:
@@ -41,13 +56,12 @@ services:
     depends_on:
       - web
 
-  # 4. Grafana Visualization
   grafana:
     image: grafana/grafana:latest
     volumes:
       - grafana_data:/var/lib/grafana
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       - prometheus
 
