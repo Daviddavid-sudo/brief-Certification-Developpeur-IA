@@ -4,15 +4,31 @@
 
 {% block content %}
     <h1>Analyse Géographique des Ventes</h1>
-    <p style="color: #666;">Répartition du Chiffre d'Affaires par département français</p>
+    <p style="color: #666;">Répartition du Chiffre d'Affaires par département</p>
     <hr>
-    
-    <div class="map-wrapper" style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 10px;">
+
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e0e0e0;">
+        <form method="get" id="filter-form">
+            <label for="month" style="font-weight: bold; margin-right: 10px;">Sélectionner un mois :</label>
+            <select name="month" id="month" onchange="this.form.submit()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ccc; background-color: white;">
+                {% for m in months_range %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                        Mois {{ m }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <div class="map-wrapper" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         {% if data_map %}
             <img src="data:image/png;base64,{{ data_map }}" alt="Carte des ventes" style="max-width: 100%; height: auto; border-radius: 5px;">
+            <p style="margin-top: 15px; color: #888; font-style: italic;">
+                Données affichées pour le mois {{ selected_month }}
+            </p>
         {% else %}
             <div style="padding: 50px; color: #999;">
-                <p>📏 Aucune donnée disponible pour générer la carte des ventes.</p>
+                <p>⚠️ Aucune donnée disponible pour ce mois.</p>
             </div>
         {% endif %}
     </div>

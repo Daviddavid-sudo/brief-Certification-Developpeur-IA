@@ -5,6 +5,7 @@ import pandas as pd
 import geopandas as gpd
 import matplotlib
 from datetime import datetime
+from django.utils import timezone
 matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 from django.shortcuts import render
@@ -20,29 +21,56 @@ def get_plot_uri():
     plt.close()
     return uri
 
-# --- VUE 1 : CARTE DES VENTES ---
+
 def carte_ventes_view(request):
+    selected_year = 2024 
+    selected_month = request.GET.get('month', timezone.now().month)
+
     path_geojson = os.path.join(settings.BASE_DIR, 'data', 'departements.geojson')
     france = gpd.read_file(path_geojson)
 
-    ventes_qs = ActiviteCommerciale.objects.all().values('code_dept', 'ca_tot')
+    # 1. Fetch data for the selected month
+    ventes_qs = ActiviteCommerciale.objects.filter(
+        mois=selected_month, 
+        annee=selected_year
+    ).values('code_dept', 'ca_tot')
+    
     df_ventes = pd.DataFrame(list(ventes_qs))
+
+    # 2. Logic for Fixed Scale:
+    # We find the highest possible population and multiply by 6 (2 * 3.0 multiplier)
+    # This ensures the scale doesn't "jump" when you change months.
+    max_pop = Population.objects.order_by('-pop').first().pop
+    vmax_fixed = max_pop * 6  # 2 (base) * 3 (max seasonality)
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 10))
     
     if not df_ventes.empty:
         df_regroupe = df_ventes.groupby('code_dept')['ca_tot'].sum().reset_index()
         france = france.merge(df_regroupe, left_on='code', right_on='code_dept', how='left')
-        france.plot(column='ca_tot', ax=ax, legend=True, cmap='OrRd', 
-                    missing_kwds={'color': 'lightgrey'}, legend_kwds={'label': "Chiffre d'Affaires (€)"})
+        
+        # --- THE FIX: vmin and vmax ---
+        france.plot(
+            column='ca_tot', 
+            ax=ax, 
+            legend=True, 
+            cmap='OrRd', 
+            vmin=0,           # Always start at 0
+            vmax=vmax_fixed,  # Always end at the theoretical max
+            missing_kwds={'color': 'lightgrey'}, 
+            legend_kwds={'label': "Chiffre d'Affaires (€)"}
+        )
     else:
         france.plot(ax=ax, color='lightgrey')
-        ax.annotate("Aucune donnée disponible", xy=(0.5, 0.5), xycoords='axes fraction', ha='center')
 
     ax.set_axis_off()
-    ax.set_title("Répartition du Chiffre d'Affaires par Département")
+    ax.set_title(f"Ventes par Département - Mois {selected_month}")
     
-    return render(request, 'dashboard/carte.html', {'data_map': get_plot_uri()})
+    return render(request, 'dashboard/carte.html', {
+        'data_map': get_plot_uri(),
+        'selected_month': int(selected_month),
+        'months_range': range(1, 13)
+    })
 
 
 def consultation_meteo(request):

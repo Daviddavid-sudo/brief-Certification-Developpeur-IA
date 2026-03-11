@@ -1,33 +1,56 @@
-# seed_data.py
-import os
-import django
+from django.core.management.base import BaseCommand
+from dashboard.models import ActiviteCommerciale, Population
 
-# Configuration de l'environnement Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mon_projet.settings')
-django.setup()
+class Command(BaseCommand):
+    help = 'Clears table and seeds CA data with strong seasonality (1.0x vs 3.0x)'
 
-from dashboard.models import ActiviteCommerciale
+    def get_seasonality_multiplier(self, month):
+        # Stronger seasonality: Summer (June-August) at 3.0, Others at 1.0
+        if month in [6, 7, 8]:
+            return 3.0
+        return 1.0
 
-def ajouter_ventes_test():
-    ventes = [
-        {"ville": "Paris", "code_dept": "75", "ca_tot": 50000, "mois": 3, "annee": 2024, "bv2022": "75056"},
-        {"ville": "Lille", "code_dept": "59", "ca_tot": 35000, "mois": 3, "annee": 2024, "bv2022": "59350"},
-        {"ville": "Marseille", "code_dept": "13", "ca_tot": 42000, "mois": 3, "annee": 2024, "bv2022": "13055"},
-        {"ville": "Lyon", "code_dept": "69", "ca_tot": 28000, "mois": 3, "annee": 2024, "bv2022": "69123"},
-    ]
+    def calculate_ca(self, population_count, month):
+        # Under 100k remains 0
+        if population_count < 100000:
+            return 0
+        
+        base_ca = population_count * 2
+        multiplier = self.get_seasonality_multiplier(month)
+        return int(base_ca * multiplier)
 
-    for data in ventes:
-        obj, created = ActiviteCommerciale.objects.update_or_create(
-            ville=data['ville'],
-            annee=data['annee'],
-            mois=data['mois'],
-            defaults={
-                'ca_tot': data['ca_tot'],
-                'code_dept': data['code_dept'],
-                'bv2022': data['bv2022']
-            }
-        )
-        print(f"✅ Données pour {data['ville']} ajoutées.")
+    def handle(self, *args, **options):
+        target_year = 2024
+        
+        # 1. Clear the existing data
+        self.stdout.write(self.style.WARNING('Clearing existing ActiviteCommerciale data...'))
+        ActiviteCommerciale.objects.all().delete()
+        
+        all_depts = Population.objects.all()
+        if not all_depts.exists():
+            self.stdout.write(self.style.ERROR('The Population table is empty!'))
+            return
 
-if __name__ == "__main__":
-    ajouter_ventes_test()
+        self.stdout.write(self.style.NOTICE(f'Starting fresh sync for {target_year}...'))
+
+        # 2. Seed data for the full year
+        for month in range(1, 13):
+            entries = []
+            for p in all_depts:
+                ca_result = self.calculate_ca(p.pop, month)
+                
+                # Using bulk_create or update_or_create. 
+                # Since we deleted all, create is faster.
+                entries.append(ActiviteCommerciale(
+                    code_dept=p.dep,
+                    annee=target_year,
+                    mois=month,
+                    ville=p.departement,
+                    ca_tot=ca_result,
+                    bv2022=f"{p.dep}000"
+                ))
+            
+            ActiviteCommerciale.objects.bulk_create(entries)
+            self.stdout.write(f"Mois {month}: Multiplier {self.get_seasonality_multiplier(month)}x applied.")
+
+        self.stdout.write(self.style.SUCCESS('Seeding complete. Seasonality is now set to 1.0x (Regular) and 3.0x (Summer).'))
