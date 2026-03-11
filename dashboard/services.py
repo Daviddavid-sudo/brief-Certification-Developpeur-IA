@@ -9,7 +9,7 @@ from langchain_community.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
 from prometheus_client import Histogram, Counter
 
-# AI monitoring metrics
+# 1. Metrics setup
 AI_REQUEST_LATENCY = Histogram(
     "ai_request_latency_seconds",
     "Latency of AI database queries"
@@ -28,36 +28,41 @@ AI_ERRORS = Counter(
 logger = logging.getLogger('ai_monitoring')
 
 def ask_llm_about_db(question):
+    """
+    Main service to handle AI queries. 
+    Increments metrics and manages DB connections safely.
+    """
     start_time = time.time()
     AI_REQUEST_COUNT.inc()
     
-    # Initialize db variable to None for the finally block
-    db = None
+    db = None  # Initialized for the finally block
 
     try:
-        # DB setup: Dynamic URI based on Django Settings
+        # 2. Dynamic DB Configuration
         db_conf = settings.DATABASES['default']
         
-        # Construct URI based on engine
         if 'postgresql' in db_conf['ENGINE']:
-            # Using +psycopg for compatibility with your psycopg-binary==3.3.3
+            # Construct PostgreSQL URI (Compatible with psycopg-binary==3.3.3)
             uri = f"postgresql+psycopg://{db_conf['USER']}:{db_conf['PASSWORD']}@{db_conf['HOST']}:{db_conf['PORT']}/{db_conf['NAME']}"
         else:
+            # Fallback for local SQLite
             db_name = db_conf['NAME']
             db_path = os.path.join(settings.BASE_DIR, db_name) if not os.path.isabs(db_name) else db_name
             uri = f"sqlite:///{db_path}"
 
+        # 3. Connect to Database
         db = SQLDatabase.from_uri(
             uri,
             include_tables=['dashboard_population', 'dashboard_activitecommerciale']
         )
 
+        # 4. API Key Safety Check
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
             AI_ERRORS.inc()
-            # Return a specific string that can be caught or used in tests
             return "Error: GROQ_API_KEY non configurée."
 
+        # 5. LLM and Chain Logic
         llm = ChatGroq(
             groq_api_key=api_key,
             model_name="llama-3.3-70b-versatile",
@@ -65,7 +70,7 @@ def ask_llm_about_db(question):
         )
 
         db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True, return_direct=False)
-
+        
         if hasattr(db_chain, 'allow_dangerous_requests'):
             db_chain.allow_dangerous_requests = True
 
@@ -75,13 +80,14 @@ def ask_llm_about_db(question):
             f"Question: {question}"
         )
 
-        # Execute Chain
+        # Execute
         if hasattr(db_chain, 'invoke'):
             output = db_chain.invoke({"query": full_prompt})
             final_text = output["result"] if isinstance(output, dict) else output
         else:
             final_text = db_chain.run(full_prompt)
 
+        # 6. Record Latency
         latency = time.time() - start_time
         AI_REQUEST_LATENCY.observe(latency)
 
@@ -89,17 +95,18 @@ def ask_llm_about_db(question):
 
     except Exception as e:
         AI_ERRORS.inc()
-        logger.error(f"AI Error: {str(e)}")
+        logger.error(f"AI Service Error: {str(e)}")
         return f"Erreur d'analyse : {str(e)}"
     
     finally:
-        # CRITICAL FIX: Dispose of the engine to release PostgreSQL locks
-        # This allows Django to destroy the test database successfully.
+        # 7. CRITICAL: Close DB connections to release locks for CI/CD
         if db and hasattr(db, '_engine'):
             db._engine.dispose()
 
 def execute_ai_sql(ai_response):
-    """Extracts and executes SELECT queries only (OWASP Security)."""
+    """
+    OWASP Security Check: Extract and execute SELECT queries only.
+    """
     match = re.search(r"SQLQuery:\s*(SELECT.*?)(?:\n|$|;)", ai_response, re.IGNORECASE | re.DOTALL)
     if not match:
         return None
