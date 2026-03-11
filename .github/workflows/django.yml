@@ -47,18 +47,10 @@ jobs:
 
       - name: Run migrations
         env:
-          DB_NAME: mydb
-          DB_USER: myuser
-          DB_PASSWORD: mypassword
-          DB_HOST: localhost
-          DB_PORT: 5432
+          DATABASE_URL: postgres://myuser:mypassword@localhost:5432/mydb
         run: python manage.py migrate
 
       - name: Run tests
         env:
-          DB_NAME: mydb
-          DB_USER: myuser
-          DB_PASSWORD: mypassword
-          DB_HOST: localhost
-          DB_PORT: 5432
+          DATABASE_URL: postgres://myuser:mypassword@localhost:5432/mydb
         run: python manage.py test
