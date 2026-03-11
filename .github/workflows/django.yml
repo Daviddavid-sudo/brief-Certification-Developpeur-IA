@@ -14,8 +14,9 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          # Use secrets if available, otherwise use these defaults for the CI environment
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER || 'django_user' }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'django_password' }}
           POSTGRES_DB: certificate_dev
         ports:
           - 5432:5432
@@ -26,14 +27,15 @@ jobs:
           --health-retries 5
 
     env:
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-test-key-12345' }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       POSTGRES_DB: certificate_dev
-      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER || 'django_user' }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'django_password' }}
       POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: 5432
-      DJANGO_SETTINGS_MODULE: mon_projet.settings
+      # Update 'mon_projet' to your actual project folder name containing settings.py
+      DJANGO_SETTINGS_MODULE: mon_projet.settings 
 
     steps:
       - name: Checkout repository
@@ -52,7 +54,10 @@ jobs:
       - name: Wait for PostgreSQL
         run: |
           sudo apt-get update && sudo apt-get install -y postgresql-client
-          timeout 60s bash -c 'until pg_isready -h 127.0.0.1 -p 5432 -U ${{ secrets.POSTGRES_USER }}; do echo "Waiting for postgres..."; sleep 2; done'
+          timeout 60s bash -c 'until pg_isready -h 127.0.0.1 -p 5432 -U ${{ env.POSTGRES_USER }}; do 
+            echo "Waiting for postgres..."; 
+            sleep 2; 
+          done'
 
       - name: Run migrations
         run: python manage.py migrate
