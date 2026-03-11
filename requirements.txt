@@ -67,6 +67,7 @@ propcache==0.4.1
 protobuf==6.33.5
 psycopg==3.3.3
 psycopg-binary==3.3.3
+psycopg2-binary>=2.9.9
 pyarrow==23.0.1
 pydantic==2.12.5
 pydantic-settings==2.13.1
