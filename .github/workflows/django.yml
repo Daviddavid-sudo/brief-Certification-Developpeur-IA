@@ -29,7 +29,7 @@ jobs:
       POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
       POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      POSTGRES_HOST: postgres   # MUST match the service name
+      POSTGRES_HOST: postgres   # ✅ must match service name
       POSTGRES_PORT: 5432
 
     steps:
@@ -46,7 +46,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Wait for PostgreSQL to be ready
+      - name: Wait for PostgreSQL
         run: |
           until pg_isready -h ${{ env.POSTGRES_HOST }} -p ${{ env.POSTGRES_PORT }} -U ${{ env.POSTGRES_USER }}; do
             echo "Waiting for PostgreSQL..."
