@@ -1,4 +1,4 @@
-name: Django CI
+name: Django CI/CD Pipeline
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [develop, main]
 
 jobs:
-  test:
+  test_and_deploy:
     runs-on: ubuntu-latest
     
     services:
@@ -19,7 +19,6 @@ jobs:
           POSTGRES_DB: certificate_dev
         ports:
           - 5432:5432
-        # Simple health check to verify the port is open
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -28,13 +27,12 @@ jobs:
 
     env:
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       POSTGRES_DB: certificate_dev
       POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      # Use the IP address directly to avoid any localhost/IPv6 resolution confusion
       POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: 5432
-      # Explicitly set settings for the CI environment
       DJANGO_SETTINGS_MODULE: mon_projet.settings
 
     steps:
@@ -44,7 +42,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -53,13 +51,15 @@ jobs:
 
       - name: Wait for PostgreSQL
         run: |
-          # Install the client to get pg_isready on the runner
           sudo apt-get update && sudo apt-get install -y postgresql-client
-          # Wait up to 60 seconds for the database to accept connections
           timeout 60s bash -c 'until pg_isready -h 127.0.0.1 -p 5432 -U ${{ secrets.POSTGRES_USER }}; do echo "Waiting for postgres..."; sleep 2; done'
 
       - name: Run migrations
         run: python manage.py migrate
 
-      - name: Run tests
+      - name: Run CI Tests
         run: python manage.py test
+
+      - name: CD Deployment Simulation
+        if: success() && github.ref == 'refs/heads/main'
+        run: echo "Tests passed on main branch! Ready for production deployment."
