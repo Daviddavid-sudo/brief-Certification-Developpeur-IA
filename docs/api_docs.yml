@@ -1,0 +1,50 @@
+openapi: 3.0.0
+info:
+  title: Data Assistant AI API
+  description: API REST sécurisée permettant d'interroger les données de population, météo et ventes via un LLM.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Serveur de développement local
+
+paths:
+  /ask/:
+    post:
+      summary: Poser une question à l'IA sur la base de données
+      description: Reçoit une question en langage naturel, génère le SQL, l'exécute et retourne la réponse.
+      security:
+        - TokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  example: "Quel est le département le plus peuplé ?"
+      responses:
+        '200':
+          description: Réponse de l'IA réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answer:
+                    type: string
+                    example: "Le département le plus peuplé est le Nord (59) avec 2,6 millions d'habitants."
+        '401':
+          description: Non autorisé (Token manquant ou invalide)
+        '400':
+          description: Requête malformée (Champ 'question' manquant)
+
+components:
+  securitySchemes:
+    TokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Format attendu "Token <votre_cle_api>"

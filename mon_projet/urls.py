@@ -20,8 +20,10 @@ from django.urls import path, include
 from dashboard.views import carte_ventes_view, consultation_meteo, carte_population_view, ai_assistant_view
 
 urlpatterns = [
+    path('', include('django_prometheus.urls')),  # metrics endpoint
+
     path('admin/', admin.site.urls),
-    path('', carte_ventes_view, name='home'), 
+    path('', carte_ventes_view, name='home'),
     path('carte/', carte_ventes_view, name='carte_ventes'),
     path('meteo_calendrier/', consultation_meteo, name='meteo_calendrier'),
     path('population/', carte_population_view, name='population'),
