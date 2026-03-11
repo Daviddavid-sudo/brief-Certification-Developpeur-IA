@@ -30,17 +30,19 @@ logger = logging.getLogger('ai_monitoring')
 def ask_llm_about_db(question):
     start_time = time.time()
     AI_REQUEST_COUNT.inc()
+    
+    # Initialize db variable to None for the finally block
+    db = None
 
     try:
         # DB setup: Dynamic URI based on Django Settings
         db_conf = settings.DATABASES['default']
         
-        # Check if we are using PostgreSQL (CI/Production) or SQLite (Local)
+        # Construct URI based on engine
         if 'postgresql' in db_conf['ENGINE']:
-            # Construct PostgreSQL URI for LangChain
-            uri = f"postgresql://{db_conf['USER']}:{db_conf['PASSWORD']}@{db_conf['HOST']}:{db_conf['PORT']}/{db_conf['NAME']}"
+            # Using +psycopg for compatibility with your psycopg-binary==3.3.3
+            uri = f"postgresql+psycopg://{db_conf['USER']}:{db_conf['PASSWORD']}@{db_conf['HOST']}:{db_conf['PORT']}/{db_conf['NAME']}"
         else:
-            # Construct SQLite URI for Local Development
             db_name = db_conf['NAME']
             db_path = os.path.join(settings.BASE_DIR, db_name) if not os.path.isabs(db_name) else db_name
             uri = f"sqlite:///{db_path}"
@@ -53,6 +55,7 @@ def ask_llm_about_db(question):
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
             AI_ERRORS.inc()
+            # Return a specific string that can be caught or used in tests
             return "Error: GROQ_API_KEY non configurée."
 
         llm = ChatGroq(
@@ -72,6 +75,7 @@ def ask_llm_about_db(question):
             f"Question: {question}"
         )
 
+        # Execute Chain
         if hasattr(db_chain, 'invoke'):
             output = db_chain.invoke({"query": full_prompt})
             final_text = output["result"] if isinstance(output, dict) else output
@@ -87,6 +91,12 @@ def ask_llm_about_db(question):
         AI_ERRORS.inc()
         logger.error(f"AI Error: {str(e)}")
         return f"Erreur d'analyse : {str(e)}"
+    
+    finally:
+        # CRITICAL FIX: Dispose of the engine to release PostgreSQL locks
+        # This allows Django to destroy the test database successfully.
+        if db and hasattr(db, '_engine'):
+            db._engine.dispose()
 
 def execute_ai_sql(ai_response):
     """Extracts and executes SELECT queries only (OWASP Security)."""
