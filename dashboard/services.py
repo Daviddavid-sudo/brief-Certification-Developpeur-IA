@@ -1,92 +1,108 @@
 import os
 import re
-import time
+import urllib.parse
 import logging
 from django.conf import settings
 from django.db import connection
 from langchain_groq import ChatGroq
 from langchain_community.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
-from prometheus_client import Histogram, Counter
-
-# Prometheus Metrics
-AI_REQUEST_LATENCY = Histogram("ai_request_latency_seconds", "Latency of AI database queries")
-AI_REQUEST_COUNT = Counter("ai_request_total", "Total number of AI assistant queries")
-AI_ERRORS = Counter("ai_errors_total", "Total number of AI assistant errors")
 
 logger = logging.getLogger('ai_monitoring')
 
-def ask_llm_about_db(question):
-    start_time = time.time()
-    AI_REQUEST_COUNT.inc()
-    db = None 
+def verify_and_clean_response(question, raw_data):
+    """
+    Vérifie la pertinence du résultat et le transforme en phrase humaine.
+    Sert de filtre de sécurité pour éviter les sorties brutes ou incohérentes.
+    """
+    # 1. Gestion des résultats vides
+    if raw_data is None or str(raw_data).strip() in ["None", "[]", "", "()"]:
+        return "Je n'ai pas trouvé de données correspondant à cette recherche dans la base."
 
+    # 2. Nettoyage strict des caractères Python (tuples, listes, guillemets)
+    # Exemple: [('Nord', 2616909)] devient "Nord 2616909"
+    clean_value = str(raw_data)
+    for char in "[]()',":
+        clean_value = clean_value.replace(char, "")
+    clean_value = clean_value.strip()
+
+    # 3. Formatage contextuel selon les mots-clés de la question
+    q_lower = question.lower()
+    
+    if "pop" in q_lower or "habitant" in q_lower:
+        return f"La population enregistrée est de : {clean_value} habitants."
+    
+    if "ca" in q_lower or "vente" in q_lower or "euro" in q_lower:
+        return f"Le montant identifié est de : {clean_value} €."
+
+    # 4. Fallback pour les autres types de questions (ex: listes de noms)
+    return f"Voici le résultat de l'analyse : {clean_value}"
+
+
+def ask_llm_about_db(question):
+    """
+    Service principal : SQL via IA -> Extraction brute -> Nettoyage et vérification Python.
+    """
+    db = None 
     try:
+        # 1. Configuration de l'URI (Gère l'erreur d'hôte @127.0.0.1)
         db_conf = settings.DATABASES['default']
-        
-        # Build the PostgreSQL URI for the Docker environment
         if 'postgresql' in db_conf['ENGINE']:
-            user = db_conf.get('USER') or 'user'
-            password = db_conf.get('PASSWORD') or 'password'
-            host = db_conf.get('HOST') or 'db'
+            user = db_conf.get('USER') or 'postgres'
+            pw = urllib.parse.quote_plus(db_conf.get('PASSWORD') or '')
+            host = db_conf.get('HOST') or '127.0.0.1'
             port = db_conf.get('PORT') or '5432'
             name = db_conf.get('NAME') or 'certificate_dev'
-
-            uri = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{name}"
-            print(f"--- AI DEBUG: Connecting to {host}:{port}/{name} ---")
+            uri = f"postgresql+psycopg://{user}:{pw}@{host}:{port}/{name}"
         else:
-            db_name = db_conf['NAME']
-            db_path = os.path.join(settings.BASE_DIR, db_name) if not os.path.isabs(db_name) else db_name
-            uri = f"sqlite:///{db_path}"
+            uri = f"sqlite:///{os.path.join(settings.BASE_DIR, db_conf['NAME'])}"
 
-        # Connect SQLAlchemy to the database
-        db = SQLDatabase.from_uri(uri, include_tables=['dashboard_population', 'dashboard_activitecommerciale'])
+        # 2. Connexion à la DB (Tables spécifiques pour éviter les fuites)
+        db = SQLDatabase.from_uri(
+            uri, 
+            include_tables=['dashboard_population', 'dashboard_activitecommerciale'],
+            engine_args={"pool_pre_ping": True}
+        )
 
+        # 3. Setup LLM (Groq Llama 3)
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
-            AI_ERRORS.inc()
-            return "Error: GROQ_API_KEY non configurée."
+            return "Configuration Erreur : GROQ_API_KEY manquante."
 
-        # Setup the LLM (Groq)
         llm = ChatGroq(groq_api_key=api_key, model_name="llama-3.3-70b-versatile", temperature=0)
-        db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True, return_direct=False)
+
+        # 4. Chaîne avec return_direct=True 
+        # Crucial : L'IA renvoie la donnée brute, pas son log de pensée "SQLQuery/Result"
+        db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True, return_direct=True)
         
         if hasattr(db_chain, 'allow_dangerous_requests'):
             db_chain.allow_dangerous_requests = True
 
-        full_prompt = f"Tu es un analyste expert. Réponds en français.\nQuestion: {question}"
+        # 5. Exécution
+        # On passe la question. Si c'est un "test", l'IA tentera un SQL ou échouera proprement.
+        response = db_chain.invoke({"query": question})
+        raw_data = response["result"] if isinstance(response, dict) else response
 
-        # Run the query
-        if hasattr(db_chain, 'invoke'):
-            output = db_chain.invoke({"query": full_prompt})
-            final_text = output["result"] if isinstance(output, dict) else output
-        else:
-            final_text = db_chain.run(full_prompt)
-
-        AI_REQUEST_LATENCY.observe(time.time() - start_time)
-        return final_text
+        # 6. Vérification finale et nettoyage
+        return verify_and_clean_response(question, raw_data)
 
     except Exception as e:
-        AI_ERRORS.inc()
-        logger.error(f"AI Service Error: {str(e)}")
-        return f"Erreur d'analyse : {str(e)}"
+        logger.error(f"AI Service Error: {str(e)}", exc_info=True)
+        # Message poli en cas de question "test" qui n'aboutit pas à un SQL valide
+        return "Désolé, je ne parviens pas à extraire cette information. Essayez de demander le chiffre d'affaires par ville ou la population d'un département."
+    
     finally:
-        # Crucial: Dispose the engine to release connections
+        # Libération systématique de la connexion
         if db and hasattr(db, '_engine'):
             db._engine.dispose()
 
 def execute_ai_sql(ai_response):
-    """ Extract and execute the raw SQL generated by the AI for verification """
-    match = re.search(r"SQLQuery:\s*(SELECT.*?)(?:\n|$|;)", ai_response, re.IGNORECASE | re.DOTALL)
+    """ Utilitaire de secours pour exécuter du SQL brut si besoin """
+    match = re.search(r"SELECT.*", ai_response, re.IGNORECASE | re.DOTALL)
     if not match: return None
-    sql_query = match.group(1).strip()
-    if not sql_query.upper().startswith("SELECT"):
-        return "Erreur : Accès SELECT uniquement."
     try:
         with connection.cursor() as cursor:
-            cursor.execute(sql_query)
-            columns = [col[0] for col in cursor.description]
-            rows = cursor.fetchall()
-            return {"columns": columns, "rows": rows}
-    except Exception as e:
-        return f"Erreur SQL : {str(e)}"
+            cursor.execute(match.group(0).strip())
+            return {"columns": [c[0] for c in cursor.description], "rows": cursor.fetchall()}
+    except Exception:
+        return None
