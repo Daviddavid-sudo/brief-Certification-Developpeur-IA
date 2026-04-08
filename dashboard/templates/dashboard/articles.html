@@ -1,0 +1,35 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Liste des Produits - Dashboard{% endblock %}
+
+{% block content %}
+    <h1>Catalogue Produits</h1>
+    <p style="color: #666;">Données extraites depuis <code>scraped_products.json</code>.</p>
+    <hr>
+    
+    <div class="table-wrapper" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        {% if products %}
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #eee; background-color: #f8f9fa;">
+                        <th style="padding: 15px;">Nom du produit</th>
+                        <th style="padding: 15px; width: 150px;">Prix</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight: 500;">{{ product.name }}</td>
+                        <td style="padding: 12px; color: #2c3e50; font-weight: bold;">{{ product.price }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div style="padding: 50px; text-align: center; color: #999;">
+                <p>📦 Aucun produit trouvé dans le fichier JSON.</p>
+                <small>Vérifiez le chemin du fichier : <code>/home/david/certificate/data/scraped_products.json</code></small>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}  {# <-- C'est cette ligne qui manquait ! #}

@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 # On importe directement les fonctions depuis l'application dashboard
-from dashboard.views import carte_ventes_view, consultation_meteo, carte_population_view, ai_assistant_view, health_check
+from dashboard.views import carte_ventes_view, consultation_meteo, carte_population_view, ai_assistant_view, health_check, product_list_view
 
 urlpatterns = [
     path('', include('django_prometheus.urls')),  # metrics endpoint
@@ -29,4 +29,5 @@ urlpatterns = [
     path('assistant/', ai_assistant_view, name='ai_assistant'),
     path('api/v1/', include('api.urls')),
     path('health/', health_check, name='health_check'),
+    path('articles/', product_list_view, name='articles_list'),
 ]

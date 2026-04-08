@@ -25,6 +25,7 @@
             <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">📊 Ventes</a>
             <a href="{% url 'meteo_calendrier' %}" class="nav-link {% if request.resolver_match.url_name == 'meteo_calendrier' %}active{% endif %}">☀️ Météo</a>
             <a href="{% url 'population' %}" class="nav-link pop {% if request.resolver_match.url_name == 'population' %}active{% endif %}">👶 Population</a>
+            <a href="{% url 'articles_list' %}" class="nav-link {% if request.resolver_match.url_name == 'articles_list' %}active{% endif %}">📦 Articles</a>
             <a href="{% url 'ai_assistant' %}" class="nav-link ai {% if request.resolver_match.url_name == 'ai_assistant' %}active{% endif %}">🤖 Assistant IA</a>
         </nav>
 

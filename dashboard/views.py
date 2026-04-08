@@ -6,7 +6,7 @@ import geopandas as gpd
 import matplotlib
 import logging
 from datetime import datetime
-
+import json
 # Configure Matplotlib for server-side rendering
 matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
@@ -63,6 +63,25 @@ def health_check(request):
         "timestamp": datetime.now().isoformat(),
         "components": checks
     }, status=status_code)
+
+def product_list_view(request):
+    # Chemin vers ton fichier JSON
+    file_path = '/home/david/certificate/data/scraped_products.json'
+    
+    # On initialise 'data' comme une liste vide par sécurité
+    data = []
+    
+    # Vérification si le fichier existe pour éviter une erreur système
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except Exception as e:
+            print(f"Erreur lors de la lecture du JSON : {e}")
+            # Optionnel : tu peux logger l'erreur ici
+    
+    # On envoie 'data' au template sous le nom 'products'
+    return render(request, 'dashboard/articles.html', {'products': data})
 
 # --- VUE 1 : VENTES (CARTE) ---
 def carte_ventes_view(request):
