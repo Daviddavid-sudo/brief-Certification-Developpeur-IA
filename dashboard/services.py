@@ -12,6 +12,8 @@ from langchain_community.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain_core.prompts import PromptTemplate
 
+# Imported Prometheus Counter to track metrics properly
+from prometheus_client import Counter
 
 logger = logging.getLogger("ai_monitoring")
 
@@ -19,7 +21,11 @@ logger = logging.getLogger("ai_monitoring")
 # METRICS
 # =========================================================
 
-AI_REQUEST_COUNT = 0
+# Redefined as a Prometheus Counter object to support ._value.get() in tests
+AI_REQUEST_COUNT = Counter(
+    "ai_request_count_total", 
+    "Total number of AI requests processed"
+)
 
 
 # =========================================================
@@ -278,8 +284,8 @@ def ask_llm_about_db(question):
     Question -> SQL -> DB -> Réponse propre
     """
 
-    global AI_REQUEST_COUNT
-    AI_REQUEST_COUNT += 1
+    # Incremented the Prometheus counter object
+    AI_REQUEST_COUNT.inc()
 
     db = None
 
