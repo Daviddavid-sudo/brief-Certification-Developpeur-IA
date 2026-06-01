@@ -10,10 +10,16 @@ from django.db import connection
 from langchain_groq import ChatGroq
 from langchain_community.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
-
 from langchain_core.prompts import PromptTemplate
 
+
 logger = logging.getLogger("ai_monitoring")
+
+# =========================================================
+# METRICS
+# =========================================================
+
+AI_REQUEST_COUNT = 0
 
 
 # =========================================================
@@ -74,7 +80,6 @@ def is_database_question(question: str) -> bool:
 
 def clean_sql_query(query: str) -> str:
     """
-    Nettoie le SQL généré par le LLM.
     Supprime les blocs markdown ```sql
     """
 
@@ -107,7 +112,7 @@ def clean_sql_query(query: str) -> str:
 
 def normalize_result(raw_data):
     """
-    Transforme les tuples/listes SQL en texte propre.
+    Transforme tuples/listes SQL en texte lisible.
     """
 
     if raw_data is None:
@@ -123,6 +128,7 @@ def normalize_result(raw_data):
             first = parsed[0]
 
             if isinstance(first, tuple):
+
                 return " - ".join(
                     str(x) for x in first
                 )
@@ -139,6 +145,7 @@ def normalize_result(raw_data):
         return str(parsed)
 
     except Exception:
+
         return str(raw_data).strip()
 
 
@@ -148,7 +155,7 @@ def normalize_result(raw_data):
 
 def verify_and_clean_response(question, raw_data):
     """
-    Transforme les résultats SQL en phrase humaine.
+    Transforme les résultats SQL en phrase naturelle.
     """
 
     if raw_data is None or str(raw_data).strip() in [
@@ -271,6 +278,9 @@ def ask_llm_about_db(question):
     Question -> SQL -> DB -> Réponse propre
     """
 
+    global AI_REQUEST_COUNT
+    AI_REQUEST_COUNT += 1
+
     db = None
 
     try:
@@ -341,14 +351,15 @@ def ask_llm_about_db(question):
             # Custom prompt
             prompt=SQL_PROMPT,
 
-            # No logs
+            # Disable verbose logs
             verbose=False,
 
-            # Return SQL result only
+            # Return only SQL result
             return_direct=True,
 
             # IMPORTANT:
-            # Disable checker because it adds markdown
+            # Query checker disabled because
+            # it often injects markdown
             use_query_checker=False,
         )
 
