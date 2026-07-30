@@ -1,53 +1,126 @@
+from time import time
+
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import TokenAuthentication
 from rest_framework import status
+
 from .serializers import AIQuerySerializer
+from .metrics import (
+    AI_REQUEST_COUNT,
+    AI_ERROR_COUNT,
+    AI_RESPONSE_TIME
+)
+
 from dashboard.services import ask_llm_about_db
 
-# 1. Protected Function-based view
-# This is likely your main API endpoint used by the frontend
+
 @api_view(["POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def ai_query(request):
+
+    AI_REQUEST_COUNT.inc()
+
+    start_time = time()
+
     serializer = AIQuerySerializer(data=request.data)
 
     if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        AI_ERROR_COUNT.inc()
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     question = serializer.validated_data["question"]
-    answer = ask_llm_about_db(question)
 
-    return Response({
-        "question": question,
-        "answer": answer
-    })
-
-
-# 2. Protected Class-based view
-# This matches the 'ai_api_endpoint' used in your unit tests
-class AIEndpointView(APIView):
-    """
-    API endpoint for asking questions to the AI.
-    Requires TokenAuthentication to pass OWASP security tests (Status 401).
-    """
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        serializer = AIQuerySerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        question = serializer.validated_data["question"]
-        
-        # This service call triggers the Prometheus increment (AI_REQUEST_COUNT)
+    try:
         answer = ask_llm_about_db(question)
+
+        print("===== AI REQUEST =====")
+        print("User :", request.user.username)
+        print("Question :", question)
+        print("Answer :", answer)
+        print("======================")
 
         return Response({
             "question": question,
             "answer": answer
         })
+
+    except Exception as e:
+
+        print("AI ERROR :", e)
+
+        AI_ERROR_COUNT.inc()
+
+        return Response(
+            {"error": "Erreur interne du service IA"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+    finally:
+        AI_RESPONSE_TIME.observe(
+            time() - start_time
+        )
+
+
+class AIEndpointView(APIView):
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        AI_REQUEST_COUNT.inc()
+
+        start_time = time()
+
+        serializer = AIQuerySerializer(data=request.data)
+
+        if not serializer.is_valid():
+
+            AI_ERROR_COUNT.inc()
+
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        question = serializer.validated_data["question"]
+
+        try:
+
+            answer = ask_llm_about_db(question)
+
+            print("===== AI REQUEST =====")
+            print("User :", request.user.username)
+            print("Question :", question)
+            print("Answer :", answer)
+            print("======================")
+
+            return Response({
+                "question": question,
+                "answer": answer
+            })
+
+        except Exception as e:
+
+            print("AI ERROR :", e)
+
+            AI_ERROR_COUNT.inc()
+
+            return Response(
+                {"error": "Erreur interne du service IA"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        finally:
+
+            AI_RESPONSE_TIME.observe(
+                time() - start_time
+            )

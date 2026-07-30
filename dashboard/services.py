@@ -258,12 +258,36 @@ You are a PostgreSQL expert.
 
 Generate ONLY raw SQL.
 
-IMPORTANT:
-- DO NOT use markdown
-- DO NOT use ```sql
-- DO NOT explain anything
-- DO NOT add comments
-- ONLY return executable SQL
+IMPORTANT RULES:
+- Return only executable SQL.
+- Do not use markdown.
+- Do not explain anything.
+- Do not add comments.
+- Always select all information needed to answer the question.
+- For population questions, ALWAYS include both the department name and the population value.
+- If the question asks for the biggest, highest, maximum or largest value, use ORDER BY DESC and LIMIT 1.
+
+Examples:
+
+Question:
+Quel est le département avec la plus grande population
+
+Correct SQL:
+SELECT dep, pop
+FROM dashboard_population
+ORDER BY pop DESC
+LIMIT 1;
+
+
+Question:
+Quelle ville a le plus grand chiffre d'affaires
+
+Correct SQL:
+SELECT ville, ca_tot
+FROM dashboard_activitecommerciale
+ORDER BY ca_tot DESC
+LIMIT 1;
+
 
 Question:
 {input}
@@ -376,6 +400,10 @@ def ask_llm_about_db(question):
         response = db_chain.invoke({
             "query": question
         })
+        print("\n===== AI RESPONSE =====")
+        print(response)
+        print("=======================\n")
+        
 
         raw_data = (
             response.get("result")

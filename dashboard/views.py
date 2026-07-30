@@ -207,29 +207,70 @@ def carte_population_view(request):
 
 @login_required
 def ai_assistant_view(request):
-    """
-    Main entry point for the AI Assistant.
-    Satisfies: AI Integration, Monitoring, and Security (OWASP).
-    """
+
     if request.method == "POST":
+
         user_query = request.POST.get('message', '').strip()
-        
+
+        print("\n===== AI REQUEST =====")
+        print("Question :", user_query)
+
         logger.info(f"Requête utilisateur reçue: {user_query}")
 
-        ai_raw_output = ask_llm_about_db(user_query)
-        db_data = execute_ai_sql(ai_raw_output)
-        
-        if isinstance(db_data, dict) and db_data['rows']:
-            cols = ", ".join(db_data['columns'])
-            formatted_rows = [str(dict(zip(db_data['columns'], row))) for row in db_data['rows'][:3]]
-            data_str = " | ".join(formatted_rows)
-            final_response = f"J'ai analysé les données. Voici les résultats ({cols}) : {data_str}"
-        else:
-            final_response = ai_raw_output
+        try:
+            ai_raw_output = ask_llm_about_db(user_query)
 
-        return JsonResponse({'response': final_response})
+            print("Réponse LLM :")
+            print(ai_raw_output)
 
-    return render(request, 'dashboard/ai_assistant.html')
+            db_data = execute_ai_sql(ai_raw_output)
+
+            if isinstance(db_data, dict) and db_data.get('rows'):
+
+                cols = ", ".join(db_data['columns'])
+
+                formatted_rows = [
+                    str(dict(zip(db_data['columns'], row)))
+                    for row in db_data['rows'][:3]
+                ]
+
+                data_str = " | ".join(formatted_rows)
+
+                final_response = (
+                    f"J'ai analysé les données. "
+                    f"Voici les résultats ({cols}) : {data_str}"
+                )
+
+            else:
+                final_response = ai_raw_output
+
+
+            print("Réponse finale :")
+            print(final_response)
+            print("====================\n")
+
+
+            return JsonResponse({
+                'response': final_response
+            })
+
+
+        except Exception as e:
+
+            print("ERREUR AI :", e)
+
+            return JsonResponse(
+                {
+                    "error": str(e)
+                },
+                status=500
+            )
+
+
+    return render(
+        request,
+        'dashboard/ai_assistant.html'
+    )
 
 from django.shortcuts import get_object_or_404, redirect
 from .models import Population
