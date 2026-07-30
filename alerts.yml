@@ -1,0 +1,27 @@
+groups:
+  - name: application_alerts
+    rules:
+
+    - alert: ApiHighResponseTime
+      expr: api_response_time_seconds > 2
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Temps de réponse API élevé"
+
+    - alert: TooManyIAErrors
+      expr: ai_errors_total > 10
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Nombre important d'erreurs IA"
+
+    - alert: DjangoDown
+      expr: up{job="django"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Service Django indisponible"

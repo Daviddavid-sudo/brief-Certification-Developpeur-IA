@@ -19,6 +19,13 @@ from django.db import connection  # Added for Health Check
 
 from .models import ActiviteCommerciale, MeteoArchive, Population
 from dashboard.services import ask_llm_about_db, execute_ai_sql
+from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.decorators import login_required
+
+
+class CustomLoginView(LoginView):
+    template_name = "dashboard/login.html"
+    redirect_authenticated_user = True
 
 # Setup Monitoring Logger
 logger = logging.getLogger('ai_monitoring')
@@ -64,6 +71,7 @@ def health_check(request):
         "components": checks
     }, status=status_code)
 
+@login_required
 def product_list_view(request):
     # Chemin vers ton fichier JSON
     file_path = '/home/david/certificate/data/scraped_products.json'
@@ -83,7 +91,7 @@ def product_list_view(request):
     # On envoie 'data' au template sous le nom 'products'
     return render(request, 'dashboard/articles.html', {'products': data})
 
-# --- VUE 1 : VENTES (CARTE) ---
+@login_required
 def carte_ventes_view(request):
     selected_year = 2024 
     selected_month = request.GET.get('month', timezone.now().month)
@@ -130,7 +138,7 @@ def carte_ventes_view(request):
         'months_range': range(1, 13)
     })
 
-# --- VUE 2 : MÉTÉO ---
+@login_required
 def consultation_meteo(request):
     resultats = None
     data_map = None
@@ -177,7 +185,7 @@ def consultation_meteo(request):
         'data_map': data_map
     })
 
-# --- VUE 3 : POPULATION ---
+@login_required
 def carte_population_view(request):
     path_geojson = os.path.join(settings.BASE_DIR, 'data', 'departements.geojson')
     france = gpd.read_file(path_geojson)
@@ -197,7 +205,7 @@ def carte_population_view(request):
     ax.set_title("Population réelle par Département")
     return render(request, 'dashboard/population.html', {'data_map': get_plot_uri()})
 
-# --- VUE 4 : ASSISTANT IA (AVEC MONITORAGE) ---
+@login_required
 def ai_assistant_view(request):
     """
     Main entry point for the AI Assistant.
@@ -222,3 +230,183 @@ def ai_assistant_view(request):
         return JsonResponse({'response': final_response})
 
     return render(request, 'dashboard/ai_assistant.html')
+
+from django.shortcuts import get_object_or_404, redirect
+from .models import Population
+from django.contrib import messages
+
+
+from django.db import IntegrityError
+from django.contrib import messages
+
+
+# CREATE : ajouter une activité commerciale
+def activite_create(request):
+
+    departements = [
+        str(i).zfill(2)
+        for i in range(1, 93)
+    ]
+
+    mois = range(1, 13)
+
+    annees = [
+        2024,
+        2025
+    ]
+
+
+    if request.method == "POST":
+
+        ville = request.POST["ville"]
+        annee = request.POST["annee"]
+        mois_value = request.POST["mois"]
+
+
+        # Vérification des doublons
+        existe = ActiviteCommerciale.objects.filter(
+            ville=ville,
+            annee=annee,
+            mois=mois_value
+        ).exists()
+
+
+        if existe:
+
+            messages.error(
+                request,
+                "Une activité existe déjà pour cette ville, cette année et ce mois."
+            )
+
+            return render(
+                request,
+                "dashboard/activite_form.html",
+                {
+                    "departements": departements,
+                    "mois": mois,
+                    "annees": annees
+                }
+            )
+
+
+        # Création de l'activité
+        ActiviteCommerciale.objects.create(
+
+            code_dept=request.POST["code_dept"],
+
+            bv2022=request.POST["bv2022"],
+
+            ville=ville,
+
+            ca_tot=request.POST["ca_tot"],
+
+            mois=mois_value,
+
+            annee=annee
+
+        )
+
+
+        messages.success(
+            request,
+            "Activité commerciale ajoutée avec succès."
+        )
+
+
+        return redirect(
+            "activite_list"
+        )
+
+
+
+    return render(
+        request,
+        "dashboard/activite_form.html",
+        {
+            "departements": departements,
+            "mois": mois,
+            "annees": annees
+        }
+    )
+
+
+# READ : afficher toutes les activités commerciales
+def activite_list(request):
+
+    activites = ActiviteCommerciale.objects.all()
+
+    return render(
+        request,
+        "dashboard/activite_list.html",
+        {"activites": activites}
+    )
+
+
+def activite_update(request,id):
+
+    activite = get_object_or_404(
+        ActiviteCommerciale,
+        id=id
+    )
+
+    departements = [str(i).zfill(2) for i in range(1,93)]
+    mois = range(1,13)
+    annees = [2024,2025]
+
+
+    if request.method == "POST":
+
+        activite.code_dept = request.POST["code_dept"]
+        activite.bv2022 = request.POST["bv2022"]
+        activite.ville = request.POST["ville"]
+        activite.ca_tot = request.POST["ca_tot"]
+        activite.mois = request.POST["mois"]
+        activite.annee = request.POST["annee"]
+
+        activite.save()
+
+
+        messages.success(
+            request,
+            "Activité commerciale modifiée"
+        )
+
+        return redirect("activite_list")
+
+
+    return render(
+        request,
+        "dashboard/activite_form.html",
+        {
+            "activite": activite,
+            "departements": departements,
+            "mois": mois,
+            "annees": annees
+        }
+    )
+
+# DELETE : supprimer une activité commerciale
+def activite_delete(request, id):
+
+    activite = get_object_or_404(
+        ActiviteCommerciale,
+        id=id
+    )
+
+    if request.method == "POST":
+
+        activite.delete()
+
+        messages.success(
+            request,
+            "Activité commerciale supprimée"
+        )
+
+        return redirect("activite_list")
+
+
+    return render(
+        request,
+        "dashboard/activite_delete.html",
+        {"activite": activite}
+    )

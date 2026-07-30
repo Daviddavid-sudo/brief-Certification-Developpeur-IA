@@ -1,0 +1,127 @@
+{% extends "dashboard/base.html" %}
+
+{% block content %}
+
+<h1>
+    {% if activite %}
+        Modifier une activité commerciale
+    {% else %}
+        Ajouter une activité commerciale
+    {% endif %}
+</h1>
+
+
+<form method="post">
+
+{% csrf_token %}
+
+
+<label>Code département :</label>
+<br>
+
+<select name="code_dept" required>
+
+{% for i in departements %}
+
+<option value="{{ i }}"
+{% if activite.code_dept == i %}selected{% endif %}>
+{{ i }}
+</option>
+
+{% endfor %}
+
+</select>
+
+
+<br><br>
+
+
+<label>BV2022 :</label>
+<br>
+
+<input 
+type="text" 
+name="bv2022"
+value="{{ activite.bv2022|default:'' }}"
+required>
+
+
+<br><br>
+
+
+<label>Ville :</label>
+<br>
+
+<input 
+type="text" 
+name="ville"
+value="{{ activite.ville|default:'' }}"
+required>
+
+
+<br><br>
+
+
+<label>Chiffre d'affaires :</label>
+<br>
+
+<input 
+type="number"
+step="0.01"
+name="ca_tot"
+value="{{ activite.ca_tot|default:'' }}"
+required>
+
+
+<br><br>
+
+
+<label>Mois :</label>
+<br>
+
+<select name="mois" required>
+
+{% for i in mois %}
+
+<option value="{{ i }}"
+{% if activite.mois == i %}selected{% endif %}>
+{{ i }}
+</option>
+
+{% endfor %}
+
+</select>
+
+
+<br><br>
+
+
+<label>Année :</label>
+<br>
+
+<select name="annee" required>
+
+{% for i in annees %}
+
+<option value="{{ i }}"
+{% if activite.annee == i %}selected{% endif %}>
+{{ i }}
+</option>
+
+{% endfor %}
+
+</select>
+
+
+<br><br>
+
+
+<button type="submit">
+Enregistrer
+</button>
+
+
+</form>
+
+
+{% endblock %}

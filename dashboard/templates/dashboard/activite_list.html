@@ -1,0 +1,90 @@
+{% extends "dashboard/base.html" %}
+
+
+{% block content %}
+
+<h1>Gestion des activités commerciales</h1>
+
+
+<a href="{% url 'activite_create' %}">
+    ➕ Ajouter une activité commerciale
+</a>
+
+
+<br><br>
+
+
+<table border="1" cellpadding="8">
+
+<tr>
+    <th>Département</th>
+    <th>Ville</th>
+    <th>CA (€)</th>
+    <th>Mois</th>
+    <th>Année</th>
+    <th>Actions</th>
+</tr>
+
+
+{% for a in activites %}
+
+<tr>
+
+<td>
+    {{ a.code_dept }}
+</td>
+
+
+<td>
+    {{ a.ville }}
+</td>
+
+
+<td>
+    {{ a.ca_tot }} €
+</td>
+
+
+<td>
+    {{ a.mois }}
+</td>
+
+
+<td>
+    {{ a.annee }}
+</td>
+
+
+<td>
+
+<a href="{% url 'activite_update' a.id %}">
+    ✏️ Modifier
+</a>
+
+
+<a href="{% url 'activite_delete' a.id %}">
+    🗑️ Supprimer
+</a>
+
+
+</td>
+
+</tr>
+
+
+{% empty %}
+
+<tr>
+    <td colspan="6">
+        Aucune activité commerciale disponible
+    </td>
+</tr>
+
+
+{% endfor %}
+
+
+</table>
+
+
+{% endblock %}

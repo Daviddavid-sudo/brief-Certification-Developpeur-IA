@@ -1,33 +1,126 @@
-"""
-URL configuration for mon_projet project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.urls import path, include
-# On importe directement les fonctions depuis l'application dashboard
-from dashboard.views import carte_ventes_view, consultation_meteo, carte_population_view, ai_assistant_view, health_check, product_list_view
+
+from dashboard.views import (
+    carte_ventes_view,
+    consultation_meteo,
+    carte_population_view,
+    ai_assistant_view,
+    health_check,
+    product_list_view,
+    CustomLoginView,
+    activite_list,
+    activite_create,
+    activite_update,
+    activite_delete,
+)
+
+from django.contrib.auth.views import LogoutView
+
 
 urlpatterns = [
-    path('', include('django_prometheus.urls')),  # metrics endpoint
+
+    # Monitoring Prometheus
+    path('', include('django_prometheus.urls')),
+
+    # Administration Django
     path('admin/', admin.site.urls),
-    path('', carte_ventes_view, name='home'),
-    path('carte/', carte_ventes_view, name='carte_ventes'),
-    path('meteo_calendrier/', consultation_meteo, name='meteo_calendrier'),
-    path('population/', carte_population_view, name='population'),
-    path('assistant/', ai_assistant_view, name='ai_assistant'),
-    path('api/v1/', include('api.urls')),
-    path('health/', health_check, name='health_check'),
-    path('articles/', product_list_view, name='articles_list'),
+
+
+    # Dashboard principal
+    path(
+        '',
+        carte_ventes_view,
+        name='home'
+    ),
+
+    path(
+        'carte/',
+        carte_ventes_view,
+        name='carte_ventes'
+    ),
+
+    path(
+        'meteo_calendrier/',
+        consultation_meteo,
+        name='meteo_calendrier'
+    ),
+
+    path(
+        'population/',
+        carte_population_view,
+        name='population'
+    ),
+
+
+    # Assistant IA
+    path(
+        'assistant/',
+        ai_assistant_view,
+        name='ai_assistant'
+    ),
+
+
+    # API
+    path(
+        'api/v1/',
+        include('api.urls')
+    ),
+
+
+    # Health Check
+    path(
+        'health/',
+        health_check,
+        name='health_check'
+    ),
+
+
+    # Articles
+    path(
+        'articles/',
+        product_list_view,
+        name='articles_list'
+    ),
+
+
+    # Authentification
+    path(
+        "login/",
+        CustomLoginView.as_view(),
+        name="login"
+    ),
+
+    path(
+        "logout/",
+        LogoutView.as_view(next_page="login"),
+        name="logout"
+    ),
+
+
+    # CRUD Activité commerciale
+    path(
+        "activites/",
+        activite_list,
+        name="activite_list"
+    ),
+
+    path(
+        "activite/create/",
+        activite_create,
+        name="activite_create"
+    ),
+
+    path(
+        "activite/update/<int:id>/",
+        activite_update,
+        name="activite_update"
+    ),
+
+    path(
+        "activite/delete/<int:id>/",
+        activite_delete,
+        name="activite_delete"
+    ),
+
 ]

@@ -1,0 +1,86 @@
+{% extends "dashboard/base.html" %}
+
+
+{% block content %}
+
+
+<h1>
+    Supprimer une activité commerciale
+</h1>
+
+
+<p>
+    Êtes-vous sûr de vouloir supprimer cette activité ?
+</p>
+
+
+<table border="1" cellpadding="8">
+
+
+<tr>
+    <th>Département</th>
+    <th>Ville</th>
+    <th>CA (€)</th>
+    <th>Mois</th>
+    <th>Année</th>
+</tr>
+
+
+<tr>
+
+<td>
+    {{ activite.code_dept }}
+</td>
+
+
+<td>
+    {{ activite.ville }}
+</td>
+
+
+<td>
+    {{ activite.ca_tot }} €
+</td>
+
+
+<td>
+    {{ activite.mois }}
+</td>
+
+
+<td>
+    {{ activite.annee }}
+</td>
+
+
+</tr>
+
+
+</table>
+
+
+<br>
+
+
+<form method="POST">
+
+    {% csrf_token %}
+
+
+    <button type="submit">
+        🗑️ Confirmer la suppression
+    </button>
+
+
+</form>
+
+
+<br>
+
+
+<a href="{% url 'activite_list' %}">
+    ⬅️ Annuler
+</a>
+
+
+{% endblock %}
