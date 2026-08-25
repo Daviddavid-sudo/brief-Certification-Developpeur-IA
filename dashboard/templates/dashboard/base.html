@@ -10,7 +10,6 @@
         {% block title %}Mon Dashboard{% endblock %}
     </title>
 
-
     <style>
 
         body {
@@ -21,223 +20,259 @@
             padding: 20px;
         }
 
-
         .container {
-
             max-width: 1000px;
             margin: 20px auto;
             background: white;
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-
         }
-
 
         .header {
-
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            margin-bottom:20px;
-
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
-
 
         .user-info {
-
-            font-size:14px;
-            color:#555;
-
+            font-size: 14px;
+            color: #555;
         }
-
 
         .logout-btn {
-
-            background:#dc3545;
-            color:white;
-            border:none;
-            padding:8px 15px;
-            border-radius:6px;
-            cursor:pointer;
-            margin-left:10px;
-
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
         }
-
 
         .logout-btn:hover {
-
-            background:#bb2d3b;
-
+            background: #bb2d3b;
         }
-
-
 
         .nav-tabs {
-
-            display:flex;
-            justify-content:center;
-            gap:15px;
-            margin-bottom:30px;
-            border-bottom:2px solid #eee;
-            padding-bottom:15px;
-            flex-wrap:wrap;
-
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+            flex-wrap: wrap;
         }
-
-
 
         .nav-link {
-
-            text-decoration:none;
-            color:#666;
-            padding:10px 20px;
-            border-radius:8px;
-            font-weight:600;
-            transition:0.3s;
-
+            text-decoration: none;
+            color: #666;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: 0.3s;
         }
-
-
 
         .nav-link:hover {
-
-            background:#e9ecef;
-
+            background: #e9ecef;
         }
-
-
 
         .nav-link.active {
-
-            background:#007bff;
-            color:white;
-
+            background: #007bff;
+            color: white;
         }
 
-
-
-        .nav-link.active.pop {
-
-            background:#28a745;
-
+        .nav-link.pop.active {
+            background: #28a745;
         }
 
-
-
-        .nav-link.active.ai {
-
-            background:#6f42c1;
-
+        .nav-link.ai.active {
+            background: #6f42c1;
         }
 
-
-
-        .nav-link.active.crud {
-
-            background:#fd7e14;
-
+        .nav-link.crud.active {
+            background: #fd7e14;
         }
 
+        .pending-message {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .admin-message {
+            background: #d1e7dd;
+            color: #0f5132;
+            border: 1px solid #badbcc;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
 
     </style>
-
 
 </head>
 
 
 <body>
 
-
 <div class="container">
-
-
-    <!-- Informations utilisateur -->
 
     {% if user.is_authenticated %}
 
-    <div class="header">
+        <!-- ============================= -->
+        <!-- INFORMATIONS UTILISATEUR -->
+        <!-- ============================= -->
 
+        <div class="header">
 
-        <div class="user-info">
+            <div class="user-info">
+                Connecté en tant que
+                <strong>{{ user.username }}</strong>
+            </div>
 
-            👤 Connecté :
-            <strong>{{ user.username }}</strong>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+
+                <button type="submit" class="logout-btn">
+                    Déconnexion
+                </button>
+
+            </form>
 
         </div>
 
 
+        <!-- ============================= -->
+        <!-- COMPTE EN ATTENTE -->
+        <!-- ============================= -->
 
-        <form method="post" action="{% url 'logout' %}">
+        {% if not user.profile.is_approved and not user.is_staff %}
 
-            {% csrf_token %}
+            <div class="pending-message">
 
-            <button class="logout-btn" type="submit">
+                ⏳ <strong>Compte en attente d'approbation</strong>
 
-                Déconnexion
+                <br>
 
-            </button>
+                Votre compte doit être approuvé par un administrateur.
 
-        </form>
+                <br>
+
+                En attendant, vous avez uniquement accès aux données météorologiques.
+
+            </div>
+
+        {% endif %}
 
 
-    </div>
+        <!-- ============================= -->
+        <!-- ADMIN -->
+        <!-- ============================= -->
 
+        {% if user.is_staff %}
+
+            <div class="admin-message">
+
+                👑 <strong>Administrateur</strong>
+
+            </div>
+
+        {% endif %}
+
+
+        <!-- ============================= -->
+        <!-- NAVIGATION -->
+        <!-- ============================= -->
+
+        <nav class="nav-tabs">
+
+            <!-- Météo accessible à tous les utilisateurs connectés -->
+
+            <a href="{% url 'meteo_calendrier' %}"
+               class="nav-link
+               {% if request.resolver_match.url_name == 'meteo_calendrier' %}
+                   active
+               {% endif %}">
+
+                ☀️ Météo
+
+            </a>
+
+
+            <!-- ============================= -->
+            <!-- FONCTIONNALITÉS APPROUVÉES -->
+            <!-- ============================= -->
+
+            {% if user.profile.is_approved or user.is_staff %}
+
+                <a href="{% url 'home' %}"
+                   class="nav-link
+                   {% if request.resolver_match.url_name == 'home' %}
+                       active
+                   {% endif %}">
+
+                    📊 Ventes
+
+                </a>
+
+
+                <a href="{% url 'population' %}"
+                   class="nav-link pop
+                   {% if request.resolver_match.url_name == 'population' %}
+                       active
+                   {% endif %}">
+
+                    👥 Population
+
+                </a>
+
+
+                <a href="{% url 'activite_list' %}"
+                   class="nav-link crud
+                   {% if request.resolver_match.url_name == 'activite_list' %}
+                       active
+                   {% endif %}">
+
+                    💰 Gestion CA
+
+                </a>
+
+
+                <a href="{% url 'articles_list' %}"
+                   class="nav-link
+                   {% if request.resolver_match.url_name == 'articles_list' %}
+                       active
+                   {% endif %}">
+
+                    📦 Articles
+
+                </a>
+
+
+                <a href="{% url 'ai_assistant' %}"
+                   class="nav-link ai
+                   {% if request.resolver_match.url_name == 'ai_assistant' %}
+                       active
+                   {% endif %}">
+
+                    🤖 Assistant IA
+
+                </a>
+
+            {% endif %}
+
+        </nav>
 
     {% endif %}
 
 
-
-
-    <!-- Navigation -->
-
-    <nav class="nav-tabs">
-
-
-        <a href="{% url 'home' %}" 
-           class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-            📊 Ventes
-        </a>
-
-
-
-        <a href="{% url 'meteo_calendrier' %}" 
-           class="nav-link {% if request.resolver_match.url_name == 'meteo_calendrier' %}active{% endif %}">
-            ☀️ Météo
-        </a>
-
-
-
-        <a href="{% url 'population' %}" 
-           class="nav-link pop {% if request.resolver_match.url_name == 'population' %}active{% endif %}">
-            👥 Population
-        </a>
-
-
-        <a href="{% url 'activite_list' %}" class="nav-link">
-        💰 Gestion CA
-        </a>
-
-
-        <a href="{% url 'articles_list' %}" 
-           class="nav-link {% if request.resolver_match.url_name == 'articles_list' %}active{% endif %}">
-            📦 Articles
-        </a>
-
-
-
-        <a href="{% url 'ai_assistant' %}" 
-           class="nav-link ai {% if request.resolver_match.url_name == 'ai_assistant' %}active{% endif %}">
-            🤖 Assistant IA
-        </a>
-
-
-    </nav>
-
-
-
-
-    <!-- Messages Django -->
+    <!-- ============================= -->
+    <!-- MESSAGES DJANGO -->
+    <!-- ============================= -->
 
     {% if messages %}
 
@@ -252,18 +287,16 @@
     {% endif %}
 
 
-
-
-    <!-- Contenu des pages -->
+    <!-- ============================= -->
+    <!-- CONTENU DES PAGES -->
+    <!-- ============================= -->
 
     {% block content %}
 
     {% endblock %}
 
 
-
 </div>
-
 
 </body>
 

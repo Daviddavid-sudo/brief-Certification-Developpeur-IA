@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+from django.contrib.auth.views import LogoutView
 
 from dashboard.views import (
     carte_ventes_view,
@@ -13,78 +14,16 @@ from dashboard.views import (
     activite_create,
     activite_update,
     activite_delete,
+    register,
 )
-
-from django.contrib.auth.views import LogoutView
 
 
 urlpatterns = [
 
-    # Monitoring Prometheus
-    path('', include('django_prometheus.urls')),
+    # ============================================================
+    # AUTHENTIFICATION
+    # ============================================================
 
-    # Administration Django
-    path('admin/', admin.site.urls),
-
-
-    # Dashboard principal
-    path(
-        '',
-        carte_ventes_view,
-        name='home'
-    ),
-
-    path(
-        'carte/',
-        carte_ventes_view,
-        name='carte_ventes'
-    ),
-
-    path(
-        'meteo_calendrier/',
-        consultation_meteo,
-        name='meteo_calendrier'
-    ),
-
-    path(
-        'population/',
-        carte_population_view,
-        name='population'
-    ),
-
-
-    # Assistant IA
-    path(
-        'assistant/',
-        ai_assistant_view,
-        name='ai_assistant'
-    ),
-
-
-    # API
-    path(
-        'api/v1/',
-        include('api.urls')
-    ),
-
-
-    # Health Check
-    path(
-        'health/',
-        health_check,
-        name='health_check'
-    ),
-
-
-    # Articles
-    path(
-        'articles/',
-        product_list_view,
-        name='articles_list'
-    ),
-
-
-    # Authentification
     path(
         "login/",
         CustomLoginView.as_view(),
@@ -97,8 +36,124 @@ urlpatterns = [
         name="logout"
     ),
 
+    path(
+        "register/",
+        register,
+        name="register"
+    ),
 
-    # CRUD Activité commerciale
+
+    # ============================================================
+    # ADMIN DJANGO
+    # ============================================================
+
+    path(
+        "admin/",
+        admin.site.urls
+    ),
+
+
+    # ============================================================
+    # PROMETHEUS
+    # ============================================================
+
+    path(
+        "",
+        include("django_prometheus.urls")
+    ),
+
+
+    # ============================================================
+    # DASHBOARD
+    # ============================================================
+
+    path(
+        "",
+        carte_ventes_view,
+        name="home"
+    ),
+
+    path(
+        "carte/",
+        carte_ventes_view,
+        name="carte_ventes"
+    ),
+
+
+    # ============================================================
+    # METEO
+    # Accessible aux utilisateurs connectés
+    # ============================================================
+
+    path(
+    'meteo_calendrier/',
+    consultation_meteo,
+    name='meteo_calendrier'
+),
+
+
+    # ============================================================
+    # POPULATION
+    # Admin uniquement via @admin_required
+    # ============================================================
+
+    path(
+        "population/",
+        carte_population_view,
+        name="population"
+    ),
+
+
+    # ============================================================
+    # ASSISTANT IA
+    # Admin uniquement via @admin_required
+    # ============================================================
+
+    path(
+        "assistant/",
+        ai_assistant_view,
+        name="ai_assistant"
+    ),
+
+
+    # ============================================================
+    # API
+    # ============================================================
+
+    path(
+        "api/v1/",
+        include("api.urls")
+    ),
+
+
+    # ============================================================
+    # HEALTH CHECK
+    # ============================================================
+
+    path(
+        "health/",
+        health_check,
+        name="health_check"
+    ),
+
+
+    # ============================================================
+    # ARTICLES
+    # Admin uniquement via @admin_required
+    # ============================================================
+
+    path(
+        "articles/",
+        product_list_view,
+        name="articles_list"
+    ),
+
+
+    # ============================================================
+    # GESTION ACTIVITE COMMERCIALE
+    # Admin uniquement via @admin_required
+    # ============================================================
+
     path(
         "activites/",
         activite_list,
@@ -122,5 +177,4 @@ urlpatterns = [
         activite_delete,
         name="activite_delete"
     ),
-
 ]

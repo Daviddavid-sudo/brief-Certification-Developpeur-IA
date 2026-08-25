@@ -1,4 +1,6 @@
+from django.contrib.auth.models import User
 from django.db import models
+
 
 class MeteoArchive(models.Model):
     dep = models.CharField(max_length=100)
@@ -9,11 +11,11 @@ class MeteoArchive(models.Model):
     temp_min = models.FloatField()
 
     class Meta:
-        unique_together = ('dep', 'annee', 'mois', 'jour')
+        unique_together = ("dep", "annee", "mois", "jour")
+
 
 class ActiviteCommerciale(models.Model):
-    # Ajout du champ manquant pour la carte
-    code_dept = models.CharField(max_length=3, default='00') 
+    code_dept = models.CharField(max_length=3, default="00")
     bv2022 = models.CharField(max_length=50)
     ville = models.CharField(max_length=100)
     ca_tot = models.FloatField()
@@ -21,21 +23,44 @@ class ActiviteCommerciale(models.Model):
     annee = models.IntegerField()
 
     class Meta:
-        unique_together = ('ville', 'annee', 'mois')
+        unique_together = ("ville", "annee", "mois")
 
 
 class Population(models.Model):
-    reg = models.CharField(max_length=5, help_text="Code de la région")
+    reg = models.CharField(max_length=5)
     region = models.CharField(max_length=100)
-    dep = models.CharField(max_length=5, unique=True, help_text="Code du département (ex: 75, 2A)")
+
+    dep = models.CharField(
+        max_length=5,
+        unique=True,
+        help_text="Code du département (ex: 75, 2A)"
+    )
+
     departement = models.CharField(max_length=100)
-    pop = models.IntegerField(verbose_name="Population municipale (PMUN)")
+
+    pop = models.IntegerField(
+        verbose_name="Population municipale (PMUN)"
+    )
+
     date_import = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Donnée Population"
         verbose_name_plural = "Données Population"
-        ordering = ['dep'] # Trie par numéro de département par défaut
+        ordering = ["dep"]
 
     def __str__(self):
         return f"{self.dep} - {self.departement} ({self.pop} hab.)"
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="profile"
+    )
+
+    is_approved = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.user.username

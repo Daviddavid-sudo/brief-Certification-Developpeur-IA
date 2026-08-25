@@ -1,0 +1,11 @@
+<h1>Créer un compte</h1>
+
+<form method="post">
+    {% csrf_token %}
+
+    {{ form.as_p }}
+
+    <button type="submit">Créer mon compte</button>
+</form>
+
+<a href="/login/">Déjà un compte ? Se connecter</a>

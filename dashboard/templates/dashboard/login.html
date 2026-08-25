@@ -31,6 +31,7 @@
             margin-bottom:20px;
             border:1px solid #ccc;
             border-radius:5px;
+            box-sizing:border-box;
         }
 
         button{
@@ -45,6 +46,20 @@
 
         button:hover{
             background:#0b5ed7;
+        }
+
+        .register-link{
+            text-align:center;
+            margin-top:20px;
+        }
+
+        .register-link a{
+            color:#0d6efd;
+            text-decoration:none;
+        }
+
+        .register-link a:hover{
+            text-decoration:underline;
         }
     </style>
 
@@ -71,6 +86,11 @@
         </button>
 
     </form>
+
+    <div class="register-link">
+        Pas encore de compte ?
+        <a href="{% url 'register' %}">Créer un compte</a>
+    </div>
 
 </div>
 
