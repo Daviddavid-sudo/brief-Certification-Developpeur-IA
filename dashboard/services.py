@@ -12,18 +12,18 @@ from langchain_community.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain_core.prompts import PromptTemplate
 
-# Imported Prometheus Counter to track metrics properly
 from prometheus_client import Counter
 
+
 logger = logging.getLogger("ai_monitoring")
+
 
 # =========================================================
 # METRICS
 # =========================================================
 
-# Redefined as a Prometheus Counter object to support ._value.get() in tests
 AI_REQUEST_COUNT = Counter(
-    "ai_request_count_total", 
+    "ai_request_count_total",
     "Total number of AI requests processed"
 )
 
@@ -59,6 +59,7 @@ DB_KEYWORDS = [
     "ca",
     "chiffre",
     "vente",
+    "ventes",
     "revenu",
     "entreprise",
 ]
@@ -66,7 +67,7 @@ DB_KEYWORDS = [
 
 def is_database_question(question: str) -> bool:
     """
-    Vérifie si la question semble liée aux données métier.
+    Vérifie si la question concerne les données métier.
     """
 
     if not question:
@@ -86,25 +87,29 @@ def is_database_question(question: str) -> bool:
 
 def clean_sql_query(query: str) -> str:
     """
-    Supprime les blocs markdown ```sql
+    Nettoie une requête SQL générée par le LLM.
     """
 
     if not query:
-        return query
+        return ""
 
     query = query.strip()
 
-    # Remove ```sql
     query = re.sub(
-        r"^```sql",
+        r"^```sql\s*",
         "",
         query,
         flags=re.IGNORECASE
     )
 
-    # Remove ```
     query = re.sub(
-        r"```$",
+        r"^```\s*",
+        "",
+        query
+    )
+
+    query = re.sub(
+        r"\s*```$",
         "",
         query
     )
@@ -118,34 +123,40 @@ def clean_sql_query(query: str) -> str:
 
 def normalize_result(raw_data):
     """
-    Transforme tuples/listes SQL en texte lisible.
+    Transforme le résultat SQL en texte lisible.
     """
 
     if raw_data is None:
         return None
 
+    if isinstance(raw_data, str):
+        raw_data = raw_data.strip()
+
+        if raw_data in ("", "[]", "()", "None"):
+            return None
+
     try:
 
         parsed = ast.literal_eval(str(raw_data))
 
-        # [('Nord', 2616909)]
-        if isinstance(parsed, list) and len(parsed) > 0:
+        if isinstance(parsed, list):
+
+            if len(parsed) == 0:
+                return None
 
             first = parsed[0]
 
             if isinstance(first, tuple):
-
                 return " - ".join(
-                    str(x) for x in first
+                    str(value) for value in first
                 )
 
             return str(first)
 
-        # ('Nord', 2616909)
         if isinstance(parsed, tuple):
 
             return " - ".join(
-                str(x) for x in parsed
+                str(value) for value in parsed
             )
 
         return str(parsed)
@@ -161,15 +172,10 @@ def normalize_result(raw_data):
 
 def verify_and_clean_response(question, raw_data):
     """
-    Transforme les résultats SQL en phrase naturelle.
+    Transforme le résultat SQL en réponse compréhensible.
     """
 
-    if raw_data is None or str(raw_data).strip() in [
-        "",
-        "[]",
-        "()",
-        "None",
-    ]:
+    if raw_data is None:
         return (
             "Je n'ai trouvé aucune donnée "
             "correspondant à votre demande."
@@ -177,32 +183,69 @@ def verify_and_clean_response(question, raw_data):
 
     clean_value = normalize_result(raw_data)
 
+    if not clean_value:
+        return (
+            "Je n'ai trouvé aucune donnée "
+            "correspondant à votre demande."
+        )
+
     q_lower = question.lower()
 
+    # -----------------------------------------------------
     # Population
+    # -----------------------------------------------------
+
     if (
         "population" in q_lower
         or "habitant" in q_lower
     ):
+
+        if (
+            "département" in q_lower
+            or "departement" in q_lower
+        ):
+
+            return (
+                "Le département ayant la plus grande "
+                f"population est : {clean_value}."
+            )
+
+        if "région" in q_lower or "region" in q_lower:
+
+            return (
+                "La région correspondant au résultat "
+                f"est : {clean_value}."
+            )
+
         return (
             f"La population enregistrée est : "
             f"{clean_value} habitants."
         )
 
-    # Chiffre d'affaires
+    # -----------------------------------------------------
+    # Chiffre d'affaires / ventes
+    # -----------------------------------------------------
+
     if (
         "ca" in q_lower
+        or "chiffre d'affaires" in q_lower
         or "chiffre" in q_lower
         or "vente" in q_lower
         or "revenu" in q_lower
-        or "euro" in q_lower
     ):
+
         return (
             f"Le montant identifié est : "
             f"{clean_value} €."
         )
 
-    return f"Voici le résultat trouvé : {clean_value}"
+    # -----------------------------------------------------
+    # Réponse générique
+    # -----------------------------------------------------
+
+    return (
+        f"Voici le résultat trouvé : {clean_value}"
+    )
 
 
 # =========================================================
@@ -211,7 +254,8 @@ def verify_and_clean_response(question, raw_data):
 
 def build_database_uri():
     """
-    Construit automatiquement l'URI SQLAlchemy.
+    Construit automatiquement l'URI SQLAlchemy
+    à partir de la configuration Django.
     """
 
     db_conf = settings.DATABASES["default"]
@@ -233,18 +277,19 @@ def build_database_uri():
 
         return (
             f"postgresql+psycopg://"
-            f"{user}:{password}@{host}:{port}/{db_name}"
+            f"{user}:{password}@"
+            f"{host}:{port}/{db_name}"
         )
 
     # SQLite
     return (
-        f"sqlite:///"
+        "sqlite:///"
         f"{os.path.join(settings.BASE_DIR, db_conf['NAME'])}"
     )
 
 
 # =========================================================
-# CUSTOM PROMPT
+# CUSTOM SQL PROMPT
 # =========================================================
 
 SQL_PROMPT = PromptTemplate(
@@ -254,46 +299,70 @@ SQL_PROMPT = PromptTemplate(
         "dialect",
     ],
     template="""
-You are a PostgreSQL expert.
+You are a PostgreSQL expert working with a French business database.
 
-Generate ONLY raw SQL.
+Your task is to convert the user's question into ONE valid PostgreSQL SQL query.
 
 IMPORTANT RULES:
-- Return only executable SQL.
-- Do not use markdown.
-- Do not explain anything.
-- Do not add comments.
-- Always select all information needed to answer the question.
-- For population questions, ALWAYS include both the department name and the population value.
-- If the question asks for the biggest, highest, maximum or largest value, use ORDER BY DESC and LIMIT 1.
 
-Examples:
+1. Return ONLY the SQL query.
+2. Do NOT use Markdown.
+3. Do NOT use ```sql.
+4. Do NOT explain the query.
+5. Do NOT add comments.
+6. ONLY generate SELECT queries.
+7. NEVER generate INSERT, UPDATE, DELETE, DROP, ALTER or TRUNCATE.
+8. Use ONLY the tables provided in the database schema.
+9. Use the exact column names from the database.
+10. If the user asks for the largest, highest, biggest or maximum value, use ORDER BY DESC and LIMIT 1.
+11. If the user asks for the smallest, lowest or minimum value, use ORDER BY ASC and LIMIT 1.
+
+DATABASE INFORMATION
+
+Table dashboard_population:
+
+- departement = name of the French department
+- dep = department code
+- pop = population
+- region = name of the region
+- reg = region code
+- date_import = import date
+
+Table dashboard_activitecommerciale:
+
+Use ONLY the columns actually present in the schema below.
+
+IMPORTANT POPULATION EXAMPLE:
 
 Question:
-Quel est le département avec la plus grande population
+Quel est le département avec la plus grande population ?
 
-Correct SQL:
-SELECT dep, pop
+SQL:
+SELECT departement, pop
 FROM dashboard_population
 ORDER BY pop DESC
 LIMIT 1;
 
+IMPORTANT SALES EXAMPLE:
 
 Question:
-Quelle ville a le plus grand chiffre d'affaires
+Quel département possède le chiffre d'affaires le plus élevé ?
 
-Correct SQL:
-SELECT ville, ca_tot
+SQL:
+SELECT dep, ca_tot
 FROM dashboard_activitecommerciale
 ORDER BY ca_tot DESC
 LIMIT 1;
 
+DATABASE SCHEMA:
 
-Question:
+{table_info}
+
+USER QUESTION:
+
 {input}
 
-Available tables:
-{table_info}
+Return ONLY the SQL query.
 """
 )
 
@@ -304,38 +373,46 @@ Available tables:
 
 def ask_llm_about_db(question):
     """
-    Pipeline principal :
-    Question -> SQL -> DB -> Réponse propre
+    Pipeline :
+
+    Question utilisateur
+            ↓
+    Validation
+            ↓
+    LLM
+            ↓
+    Génération SQL
+            ↓
+    PostgreSQL
+            ↓
+    Résultat
+            ↓
+    Réponse utilisateur
     """
 
-    # Incremented the Prometheus counter object
     AI_REQUEST_COUNT.inc()
 
     db = None
 
     try:
 
-        # ---------------------------------------------
-        # 1. Validate question
-        # ---------------------------------------------
+        # =================================================
+        # 1. Validation de la question
+        # =================================================
 
         if not is_database_question(question):
 
             return (
-                "Je peux répondre uniquement "
-                "aux questions liées à la population "
-                "et aux activités commerciales."
+                "Je peux répondre uniquement aux questions "
+                "liées à la population et aux activités "
+                "commerciales."
             )
 
-        # ---------------------------------------------
-        # 2. Database URI
-        # ---------------------------------------------
+        # =================================================
+        # 2. Connexion PostgreSQL
+        # =================================================
 
         uri = build_database_uri()
-
-        # ---------------------------------------------
-        # 3. SQL Database
-        # ---------------------------------------------
 
         db = SQLDatabase.from_uri(
             uri,
@@ -348,72 +425,85 @@ def ask_llm_about_db(question):
             },
         )
 
-        # ---------------------------------------------
-        # 4. API KEY
-        # ---------------------------------------------
+        # =================================================
+        # 3. Vérification API Groq
+        # =================================================
 
         api_key = os.getenv("GROQ_API_KEY")
 
         if not api_key:
 
-            logger.error("Missing GROQ_API_KEY")
+            logger.error("GROQ_API_KEY manquante")
 
-            return "Erreur configuration IA."
+            return "Erreur de configuration du service IA."
 
-        # ---------------------------------------------
-        # 5. LLM
-        # ---------------------------------------------
+        # =================================================
+        # 4. Initialisation du modèle
+        # =================================================
 
         llm = ChatGroq(
             groq_api_key=api_key,
-            model_name="llama-3.3-70b-versatile",
+            model_name="openai/gpt-oss-120b",
             temperature=0,
         )
 
-        # ---------------------------------------------
-        # 6. SQL CHAIN
-        # ---------------------------------------------
+        # =================================================
+        # 5. Création de la chaîne SQL
+        # =================================================
 
         db_chain = SQLDatabaseChain.from_llm(
             llm=llm,
             db=db,
-
-            # Custom prompt
             prompt=SQL_PROMPT,
 
-            # Disable verbose logs
-            verbose=False,
+            # TEMPORAIRE :
+            # permet de voir le SQL généré
+            verbose=True,
 
-            # Return only SQL result
             return_direct=True,
 
-            # IMPORTANT:
-            # Query checker disabled because
-            # it often injects markdown
             use_query_checker=False,
         )
 
-        # ---------------------------------------------
-        # 7. Execute
-        # ---------------------------------------------
+        # =================================================
+        # 6. Exécution
+        # =================================================
 
         response = db_chain.invoke({
             "query": question
         })
-        print("\n===== AI RESPONSE =====")
+
+        # =================================================
+        # 7. Logs de diagnostic
+        # =================================================
+
+        print("\n==============================")
+        print("QUESTION UTILISATEUR")
+        print("==============================")
+        print(question)
+
+        print("\n==============================")
+        print("REPONSE LANGCHAIN")
+        print("==============================")
         print(response)
-        print("=======================\n")
-        
 
-        raw_data = (
-            response.get("result")
-            if isinstance(response, dict)
-            else response
-        )
+        print("==============================\n")
 
-        # ---------------------------------------------
-        # 8. Clean final response
-        # ---------------------------------------------
+        # =================================================
+        # 8. Extraction du résultat
+        # =================================================
+
+        if isinstance(response, dict):
+
+            raw_data = response.get("result")
+
+        else:
+
+            raw_data = response
+
+        # =================================================
+        # 9. Transformation en réponse naturelle
+        # =================================================
 
         return verify_and_clean_response(
             question,
@@ -427,6 +517,12 @@ def ask_llm_about_db(question):
             exc_info=True
         )
 
+        print("\n==============================")
+        print("ERREUR SERVICE IA")
+        print("==============================")
+        print(str(e))
+        print("==============================\n")
+
         return (
             "Désolé, une erreur est survenue "
             "lors de l'analyse des données."
@@ -434,33 +530,40 @@ def ask_llm_about_db(question):
 
     finally:
 
-        # ---------------------------------------------
-        # 9. Close DB engine
-        # ---------------------------------------------
+        # =================================================
+        # 10. Fermeture connexion SQLAlchemy
+        # =================================================
 
         try:
 
             if db and hasattr(db, "_engine"):
+
                 db._engine.dispose()
 
         except Exception:
+
             pass
 
 
 # =========================================================
-# OPTIONAL RAW SQL EXECUTOR
+# SECURE RAW SQL EXECUTOR
 # =========================================================
 
 def execute_ai_sql(ai_response):
     """
-    Utilitaire de secours :
-    exécute uniquement des SELECT.
+    Exécute uniquement des requêtes SELECT.
     """
 
     if not ai_response:
         return None
 
-    ai_response = clean_sql_query(ai_response)
+    ai_response = clean_sql_query(
+        ai_response
+    )
+
+    # -----------------------------------------------------
+    # Recherche de SELECT
+    # -----------------------------------------------------
 
     match = re.search(
         r"SELECT\s+.*",
@@ -473,7 +576,10 @@ def execute_ai_sql(ai_response):
 
     sql = match.group(0).strip()
 
-    # SECURITY BLOCK
+    # -----------------------------------------------------
+    # Sécurité
+    # -----------------------------------------------------
+
     forbidden = [
         "DROP",
         "DELETE",
@@ -481,17 +587,30 @@ def execute_ai_sql(ai_response):
         "INSERT",
         "ALTER",
         "TRUNCATE",
+        "CREATE",
+        "GRANT",
+        "REVOKE",
     ]
 
     upper_sql = sql.upper()
 
-    if any(word in upper_sql for word in forbidden):
+    if any(
+        re.search(
+            rf"\b{word}\b",
+            upper_sql
+        )
+        for word in forbidden
+    ):
 
         logger.warning(
-            "Dangerous SQL blocked"
+            "Tentative d'exécution SQL dangereuse bloquée."
         )
 
         return None
+
+    # -----------------------------------------------------
+    # Exécution
+    # -----------------------------------------------------
 
     try:
 
@@ -501,8 +620,8 @@ def execute_ai_sql(ai_response):
 
             return {
                 "columns": [
-                    c[0]
-                    for c in cursor.description
+                    column[0]
+                    for column in cursor.description
                 ],
                 "rows": cursor.fetchall(),
             }

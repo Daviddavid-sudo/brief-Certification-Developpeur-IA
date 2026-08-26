@@ -1,41 +1,58 @@
-
 services:
+
+  # ============================================================
+  # BASE DE DONNÉES
+  # ============================================================
+
   db:
     image: postgres:15
+
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
     environment:
-      - POSTGRES_DB=certificate_dev
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
+      POSTGRES_DB: certificate_dev
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d certificate_dev"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+
+  # ============================================================
+  # APPLICATION DJANGO
+  # ============================================================
+
   web:
     build: .
-    # FIXED: Corrected path to data/insee.csv and ensured sequential execution
+
     command: >
-      sh -c "python manage.py migrate && 
-             python manage.py import_insee data/insee.csv && 
-             python manage.py seed_data && 
+      sh -c "python manage.py migrate &&
+             python manage.py import_insee data/insee.csv &&
+             python manage.py seed_data &&
              python manage.py runserver 0.0.0.0:8000"
+
     volumes:
       - .:/app
+
     ports:
       - "8000:8000"
+
     environment:
-      - POSTGRES_DB=certificate_dev
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - GROQ_API_KEY=${GROQ_API_KEY}
+      POSTGRES_DB: certificate_dev
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      GROQ_API_KEY: ${GROQ_API_KEY}
+
     depends_on:
       db:
         condition: service_healthy
+
     develop:
       watch:
         - action: sync
@@ -45,26 +62,67 @@ services:
             - .venv
             - __pycache__
 
+
+  # ============================================================
+  # PROMETHEUS
+  # ============================================================
+
   prometheus:
     image: prom/prometheus:latest
+
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alerts.yml:/etc/prometheus/alerts.yml
       - prometheus_data:/prometheus
+
     ports:
       - "9090:9090"
+
     depends_on:
       - web
 
-  grafana:
-    image: grafana/grafana:latest
+
+  # ============================================================
+  # ALERTMANAGER
+  # ============================================================
+
+  alertmanager:
+    image: prom/alertmanager:latest
+
     volumes:
-      - grafana_data:/var/lib/grafana
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+
     ports:
-      - "3001:3000"
+      - "9093:9093"
+
     depends_on:
       - prometheus
+
+
+  # ============================================================
+  # GRAFANA
+  # ============================================================
+
+  grafana:
+    image: grafana/grafana:latest
+
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+    ports:
+      - "3001:3000"
+
+    depends_on:
+      - prometheus
+
+
+# ============================================================
+# VOLUMES
+# ============================================================
 
 volumes:
   postgres_data:
   prometheus_data:
   grafana_data:
+  alertmanager_data:

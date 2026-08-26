@@ -2,26 +2,62 @@ groups:
   - name: application_alerts
     rules:
 
-    - alert: ApiHighResponseTime
-      expr: api_response_time_seconds > 2
-      for: 1m
-      labels:
-        severity: warning
-      annotations:
-        summary: "Temps de réponse API élevé"
+      # Django indisponible
+      - alert: DjangoDown
+        expr: up{job="django"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service Django indisponible"
+          description: "L'application Django ne répond plus depuis plus d'une minute."
 
-    - alert: TooManyIAErrors
-      expr: ai_errors_total > 10
-      for: 5m
-      labels:
-        severity: critical
-      annotations:
-        summary: "Nombre important d'erreurs IA"
+      # Temps de réponse API élevé
+      - alert: ApiHighResponseTime
+        expr: api_response_time_seconds > 2
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Temps de réponse API élevé"
+          description: "Le temps de réponse de l'API dépasse 2 secondes depuis plus d'une minute."
 
-    - alert: DjangoDown
-      expr: up{job="django"} == 0
-      for: 1m
-      labels:
-        severity: critical
-      annotations:
-        summary: "Service Django indisponible"
+      # Trop d'erreurs IA
+      - alert: TooManyIAErrors
+        expr: increase(ai_errors_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nombre important d'erreurs IA"
+          description: "Plus de 10 erreurs du service IA ont été détectées au cours des 5 dernières minutes."
+
+      # Métriques Django indisponibles
+      - alert: DjangoMetricsUnavailable
+        expr: up{job="django"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Métriques Django indisponibles"
+          description: "Prometheus ne parvient plus à récupérer les métriques de l'application Django."
+
+      # Base de données
+      - alert: DatabaseUnavailable
+        expr: django_db_connections_errors_total > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Erreur de connexion à la base de données"
+          description: "Des erreurs de connexion à PostgreSQL ont été détectées."
+
+      # Service IA
+      - alert: AIServiceErrors
+        expr: ai_errors_total > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Erreurs du service IA détectées"
+          description: "Le service IA rencontre des erreurs depuis plusieurs minutes."
