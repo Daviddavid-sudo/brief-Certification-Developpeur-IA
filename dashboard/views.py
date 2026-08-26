@@ -786,6 +786,10 @@ def consultation_meteo(request):
 # POPULATION
 # ============================================================
 
+# ============================================================
+# POPULATION
+# ============================================================
+
 @approved_required
 def carte_population_view(request):
 
@@ -795,11 +799,13 @@ def carte_population_view(request):
         "departements.geojson"
     )
 
-
     france = gpd.read_file(
         path_geojson
     )
 
+    # ========================================================
+    # RÉCUPÉRATION DES DONNÉES
+    # ========================================================
 
     pop_qs = (
         Population.objects
@@ -808,6 +814,152 @@ def carte_population_view(request):
             "dep",
             "pop"
         )
+    )
+
+    df_pop = pd.DataFrame(
+        list(pop_qs)
+    )
+
+    # ========================================================
+    # POPULATION TOTALE
+    # ========================================================
+
+    population_totale = 0
+
+    if not df_pop.empty:
+
+        population_totale = df_pop["pop"].sum()
+
+    # ========================================================
+    # TOP 10 DÉPARTEMENTS
+    # ========================================================
+
+    top_departements = []
+
+    if not df_pop.empty:
+
+        top10 = (
+            df_pop
+            .sort_values(
+                by="pop",
+                ascending=False
+            )
+            .head(10)
+            .reset_index(drop=True)
+        )
+
+        for index, row in top10.iterrows():
+
+            code = str(row["dep"])
+
+            # Recherche du nom du département
+            nom = code
+
+            try:
+
+                departement_geo = france[
+                    france["code"].astype(str) == code
+                ]
+
+                if not departement_geo.empty:
+
+                    # Plusieurs fichiers GeoJSON utilisent
+                    # différentes colonnes pour le nom.
+                    if "nom" in departement_geo.columns:
+
+                        nom = departement_geo.iloc[0]["nom"]
+
+                    elif "name" in departement_geo.columns:
+
+                        nom = departement_geo.iloc[0]["name"]
+
+            except Exception:
+
+                pass
+
+            top_departements.append(
+                {
+                    "rang": index + 1,
+                    "code": code,
+                    "nom": nom,
+                    "population": row["pop"]
+                }
+            )
+
+    # ========================================================
+    # CARTE
+    # ========================================================
+
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=(10, 10)
+    )
+
+    if not df_pop.empty:
+
+        # Harmonisation des codes département
+        df_pop["dep"] = (
+            df_pop["dep"]
+            .astype(str)
+            .str.strip()
+        )
+
+        france["code"] = (
+            france["code"]
+            .astype(str)
+            .str.strip()
+        )
+
+        france = france.merge(
+            df_pop,
+            left_on="code",
+            right_on="dep",
+            how="left"
+        )
+
+        france.plot(
+            column="pop",
+            ax=ax,
+            legend=True,
+            cmap="YlGnBu",
+            missing_kwds={
+                "color": "#f5f5f5"
+            },
+            legend_kwds={
+                "label": "Nombre d'habitants (Source INSEE)"
+            }
+        )
+
+    else:
+
+        france.plot(
+            ax=ax,
+            color="lightgrey"
+        )
+
+    ax.set_axis_off()
+
+    ax.set_title(
+        "Population par département",
+        fontsize=16,
+        fontweight="bold"
+    )
+
+    # ========================================================
+    # ENVOI AU TEMPLATE
+    # ========================================================
+
+    return render(
+        request,
+        "dashboard/population.html",
+        {
+            "data_map": get_plot_uri(),
+
+            "population_totale": population_totale,
+
+            "top_departements": top_departements
+        }
     )
 
 

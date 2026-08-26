@@ -1,19 +1,542 @@
 {% extends 'dashboard/base.html' %}
 
-{% block title %}Population Jeune - Dashboard{% endblock %}
+{% block title %}Démographie — DataPilot{% endblock %}
 
 {% block content %}
-    <h1>Démographie : Population </h1>
-    <p style="color: #666;">Analyse de la concentration de la population par département français.</p>
-    <hr>
-    
-    <div class="map-wrapper" style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 10px;">
-        {% if data_map %}
-            <img src="data:image/png;base64,{{ data_map }}" alt="Carte Population" style="max-width: 100%; height: auto; border-radius: 5px;">
-        {% else %}
-            <div style="padding: 50px; color: #999;">
-                <p>📏 Chargement de la carte démographique impossible...</p>
-            </div>
-        {% endif %}
+
+<style>
+
+    /* =========================================================
+       HEADER
+    ========================================================= */
+
+    .population-header {
+        margin-bottom: 28px;
+    }
+
+    .population-title {
+        margin: 0;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.7px;
+        color: #0f172a;
+    }
+
+    .population-subtitle {
+        margin: 8px 0 0;
+        font-size: 14px;
+        color: #64748b;
+        line-height: 1.6;
+    }
+
+
+    /* =========================================================
+       KPI
+    ========================================================= */
+
+    .population-kpi {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .kpi-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 22px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    .kpi-label {
+        margin: 0 0 8px;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+    }
+
+    .kpi-value {
+        margin: 0;
+        color: #0f172a;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+
+    .kpi-description {
+        margin: 6px 0 0;
+        color: #94a3b8;
+        font-size: 12px;
+    }
+
+
+    /* =========================================================
+       MAIN GRID
+    ========================================================= */
+
+    .population-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 390px;
+        gap: 20px;
+        align-items: start;
+    }
+
+
+    /* =========================================================
+       CARDS
+    ========================================================= */
+
+    .population-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 19px 22px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .card-title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 15px;
+        font-weight: 650;
+    }
+
+    .card-description {
+        margin: 5px 0 0;
+        color: #94a3b8;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+
+    /* =========================================================
+       MAP
+    ========================================================= */
+
+    .map-content {
+        padding: 20px;
+        background: #fafbfc;
+        text-align: center;
+    }
+
+    .map-image {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto;
+        border-radius: 7px;
+    }
+
+    .map-footer {
+        padding: 12px 22px;
+        border-top: 1px solid #e2e8f0;
+        color: #94a3b8;
+        font-size: 11px;
+    }
+
+
+    /* =========================================================
+       TOP 10
+    ========================================================= */
+
+    .ranking {
+        padding: 5px 0;
+    }
+
+    .ranking-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 18px;
+        border-bottom: 1px solid #f1f5f9;
+        transition: background 0.15s ease;
+    }
+
+    .ranking-row:last-child {
+        border-bottom: none;
+    }
+
+    .ranking-row:hover {
+        background: #f8fafc;
+    }
+
+
+    /* =========================================================
+       RANK NUMBER
+    ========================================================= */
+
+    .ranking-number {
+        width: 29px;
+        height: 29px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        border-radius: 8px;
+
+        background: #f1f5f9;
+        color: #64748b;
+
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .ranking-row:nth-child(1) .ranking-number {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .ranking-row:nth-child(2) .ranking-number {
+        background: #f8fafc;
+        color: #475569;
+    }
+
+    .ranking-row:nth-child(3) .ranking-number {
+        background: #f8fafc;
+        color: #475569;
+    }
+
+
+    /* =========================================================
+       DEPARTMENT INFO
+    ========================================================= */
+
+    .ranking-info {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .ranking-name {
+        margin: 0;
+        color: #334155;
+        font-size: 13px;
+        font-weight: 600;
+
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ranking-code {
+        margin-top: 3px;
+        color: #94a3b8;
+        font-size: 10px;
+    }
+
+    .ranking-population {
+        color: #0f172a;
+        font-size: 13px;
+        font-weight: 650;
+        white-space: nowrap;
+    }
+
+
+    /* =========================================================
+       EMPTY STATE
+    ========================================================= */
+
+    .empty-state {
+        padding: 55px 20px;
+        text-align: center;
+        color: #94a3b8;
+        font-size: 13px;
+    }
+
+    .empty-icon {
+        width: 42px;
+        height: 42px;
+        margin: 0 auto 12px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 10px;
+
+        background: #f1f5f9;
+        color: #64748b;
+
+        font-size: 18px;
+    }
+
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+
+    @media (max-width: 1050px) {
+
+        .population-grid {
+            grid-template-columns: 1fr;
+        }
+
+    }
+
+
+    @media (max-width: 700px) {
+
+        .population-kpi {
+            grid-template-columns: 1fr;
+        }
+
+        .population-title {
+            font-size: 25px;
+        }
+
+        .population-subtitle {
+            font-size: 13px;
+        }
+
+    }
+
+</style>
+
+
+<!-- =========================================================
+     HEADER
+========================================================== -->
+
+<div class="population-header">
+
+    <h1 class="population-title">
+        Analyse démographique
+    </h1>
+
+    <p class="population-subtitle">
+        Visualisez la répartition de la population française
+        et identifiez les départements les plus peuplés.
+    </p>
+
+</div>
+
+
+<!-- =========================================================
+     KPI
+========================================================== -->
+
+<div class="population-kpi">
+
+
+    <!-- POPULATION TOTALE -->
+
+    <div class="kpi-card">
+
+        <p class="kpi-label">
+            Population totale
+        </p>
+
+        <p class="kpi-value">
+            {{ population_totale|floatformat:0 }}
+        </p>
+
+        <p class="kpi-description">
+            Somme des populations départementales
+        </p>
+
     </div>
+
+
+    <!-- CLASSEMENT -->
+
+    <div class="kpi-card">
+
+        <p class="kpi-label">
+            Classement
+        </p>
+
+        <p class="kpi-value">
+            Top 10
+        </p>
+
+        <p class="kpi-description">
+            Départements les plus peuplés
+        </p>
+
+    </div>
+
+
+</div>
+
+
+<!-- =========================================================
+     CARTE + TOP 10
+========================================================== -->
+
+<div class="population-grid">
+
+
+    <!-- =====================================================
+         CARTE
+    ====================================================== -->
+
+    <div class="population-card">
+
+
+        <div class="card-header">
+
+            <h2 class="card-title">
+                Population par département
+            </h2>
+
+            <p class="card-description">
+                Répartition géographique de la population française
+            </p>
+
+        </div>
+
+
+        <div class="map-content">
+
+            {% if data_map %}
+
+                <img
+                    src="data:image/png;base64,{{ data_map }}"
+                    alt="Carte de la population par département"
+                    class="map-image"
+                >
+
+            {% else %}
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+                        —
+                    </div>
+
+                    Impossible de charger la carte démographique.
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        {% if data_map %}
+
+            <div class="map-footer">
+
+                Données de population par département.
+
+            </div>
+
+        {% endif %}
+
+
+    </div>
+
+
+    <!-- =====================================================
+         TOP 10
+    ====================================================== -->
+
+    <div class="population-card">
+
+
+        <div class="card-header">
+
+            <h2 class="card-title">
+                Top 10 des départements
+            </h2>
+
+            <p class="card-description">
+                Classement des départements selon leur population
+            </p>
+
+        </div>
+
+
+        <div class="ranking">
+
+
+            {% if top_departements %}
+
+
+                {% for departement in top_departements %}
+
+
+                    <div class="ranking-row">
+
+
+                        <!-- RANG -->
+
+                        <div class="ranking-number">
+
+                            {{ departement.rang }}
+
+                        </div>
+
+
+                        <!-- NOM -->
+
+                        <div class="ranking-info">
+
+                            <p class="ranking-name">
+
+                                {{ departement.nom }}
+
+                            </p>
+
+                            <div class="ranking-code">
+
+                                Département {{ departement.code }}
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- POPULATION -->
+
+                        <div class="ranking-population">
+
+                            {{ departement.population|floatformat:0 }}
+
+                        </div>
+
+
+                    </div>
+
+
+                {% endfor %}
+
+
+            {% else %}
+
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+                        —
+                    </div>
+
+                    Aucune donnée de population disponible.
+
+                </div>
+
+
+            {% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
 {% endblock %}
