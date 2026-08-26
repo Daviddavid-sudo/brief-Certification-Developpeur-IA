@@ -10,6 +10,7 @@ import geopandas as gpd
 import matplotlib
 
 matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 
 from datetime import datetime
@@ -20,10 +21,12 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.views import LoginView
+from django.contrib.auth.models import User
 from django.db import connection
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from .models import (
     ActiviteCommerciale,
@@ -32,7 +35,10 @@ from .models import (
     UserProfile,
 )
 
-from dashboard.services import ask_llm_about_db, execute_ai_sql
+from dashboard.services import (
+    ask_llm_about_db,
+    execute_ai_sql,
+)
 
 
 # ============================================================
@@ -40,7 +46,11 @@ from dashboard.services import ask_llm_about_db, execute_ai_sql
 # ============================================================
 
 def landing_page(request):
-    return render(request, "dashboard/landing.html")
+
+    return render(
+        request,
+        "dashboard/landing.html"
+    )
 
 
 # ============================================================
@@ -48,23 +58,16 @@ def landing_page(request):
 # ============================================================
 
 class CustomLoginView(LoginView):
+
     template_name = "dashboard/login.html"
+
     redirect_authenticated_user = True
 
-
-
     def get_success_url(self):
-        """
-        Redirection après connexion :
-
-        - Administrateur -> dashboard commercial
-        - Utilisateur approuvé -> dashboard commercial
-        - Utilisateur non approuvé -> météo
-        """
 
         user = self.request.user
 
-        # Administrateur : accès complet
+        # Administrateur
         if user.is_staff:
             return "/carte/"
 
@@ -72,46 +75,70 @@ class CustomLoginView(LoginView):
         if hasattr(user, "profile") and user.profile.is_approved:
             return "/carte/"
 
-        # Nouvel utilisateur non approuvé
+        # Utilisateur en attente
         return "/meteo_calendrier/"
 
 
 def is_admin(user):
-    return user.is_authenticated and user.is_staff
+
+    return (
+        user.is_authenticated
+        and user.is_staff
+    )
 
 
 def approved_required(view_func):
-    """
-    Autorise :
-    - les administrateurs ;
-    - les utilisateurs dont le compte est approuvé.
-
-    Les utilisateurs non approuvés sont redirigés vers Météo.
-    """
 
     def wrapper(request, *args, **kwargs):
 
+        # Pas connecté
         if not request.user.is_authenticated:
-            return redirect("/login/")
 
+            return redirect("login")
+
+
+        # Administrateur
         if request.user.is_staff:
-            return view_func(request, *args, **kwargs)
 
+            return view_func(
+                request,
+                *args,
+                **kwargs
+            )
+
+
+        # Profil inexistant
         if not hasattr(request.user, "profile"):
+
             messages.warning(
                 request,
-                "Votre compte est en attente d'approbation par un administrateur."
+                "Votre compte est en attente d'approbation."
             )
-            return redirect("meteo_calendrier")
 
+            return redirect(
+                "meteo_calendrier"
+            )
+
+
+        # Compte non approuvé
         if not request.user.profile.is_approved:
+
             messages.warning(
                 request,
-                "Votre compte est en attente d'approbation par un administrateur."
+                "Votre compte est en attente d'approbation."
             )
-            return redirect("meteo_calendrier")
 
-        return view_func(request, *args, **kwargs)
+            return redirect(
+                "meteo_calendrier"
+            )
+
+
+        return view_func(
+            request,
+            *args,
+            **kwargs
+        )
+
 
     return wrapper
 
@@ -120,7 +147,9 @@ def register(request):
 
     if request.method == "POST":
 
-        form = UserCreationForm(request.POST)
+        form = UserCreationForm(
+            request.POST
+        )
 
         if form.is_valid():
 
@@ -131,45 +160,221 @@ def register(request):
                 is_approved=False
             )
 
-            login(request, user)
+            login(
+                request,
+                user
+            )
 
-            return redirect("meteo_calendrier")
+            return redirect(
+                "meteo_calendrier"
+            )
 
     else:
+
         form = UserCreationForm()
+
 
     return render(
         request,
         "dashboard/register/register.html",
-        {"form": form}
+        {
+            "form": form
+        }
     )
+
+
+# ============================================================
+# ADMINISTRATION DES UTILISATEURS
+# ============================================================
+
+def users_view(request):
+
+    # Seuls les administrateurs peuvent accéder
+    if not request.user.is_authenticated:
+
+        return redirect("login")
+
+
+    if not request.user.is_staff:
+
+        messages.error(
+            request,
+            "Vous n'avez pas accès à cette page."
+        )
+
+        return redirect(
+            "meteo_calendrier"
+        )
+
+
+    users = (
+        User.objects
+        .select_related("profile")
+        .order_by("-date_joined")
+    )
+
+
+    return render(
+        request,
+        "dashboard/users.html",
+        {
+            "users": users
+        }
+    )
+
+
+@require_POST
+def approve_user(request, user_id):
+
+    # Sécurité : uniquement admin
+    if not request.user.is_authenticated:
+
+        return redirect("login")
+
+
+    if not request.user.is_staff:
+
+        messages.error(
+            request,
+            "Accès refusé."
+        )
+
+        return redirect(
+            "meteo_calendrier"
+        )
+
+
+    user = get_object_or_404(
+        User,
+        id=user_id
+    )
+
+
+    # Empêche de modifier son propre compte
+    if user == request.user:
+
+        messages.error(
+            request,
+            "Vous ne pouvez pas modifier votre propre compte."
+        )
+
+        return redirect("users")
+
+
+    profile, created = UserProfile.objects.get_or_create(
+        user=user
+    )
+
+    profile.is_approved = True
+
+    profile.save()
+
+
+    messages.success(
+        request,
+        f"Le compte de {user.username} a été approuvé."
+    )
+
+
+    return redirect("users")
+
+
+@require_POST
+def reject_user(request, user_id):
+
+    # Sécurité : uniquement admin
+    if not request.user.is_authenticated:
+
+        return redirect("login")
+
+
+    if not request.user.is_staff:
+
+        messages.error(
+            request,
+            "Accès refusé."
+        )
+
+        return redirect(
+            "meteo_calendrier"
+        )
+
+
+    user = get_object_or_404(
+        User,
+        id=user_id
+    )
+
+
+    # Empêche de modifier son propre compte
+    if user == request.user:
+
+        messages.error(
+            request,
+            "Vous ne pouvez pas modifier votre propre compte."
+        )
+
+        return redirect("users")
+
+
+    profile, created = UserProfile.objects.get_or_create(
+        user=user
+    )
+
+    profile.is_approved = False
+
+    profile.save()
+
+
+    messages.success(
+        request,
+        f"Le compte de {user.username} n'est plus approuvé."
+    )
+
+
+    return redirect("users")
 
 
 # ============================================================
 # MONITORING
 # ============================================================
 
-logger = logging.getLogger("ai_monitoring")
+logger = logging.getLogger(
+    "ai_monitoring"
+)
 
 
 def health_check(request):
 
     checks = {}
+
     is_healthy = True
+
 
     try:
 
         with connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
+
+            cursor.execute(
+                "SELECT 1"
+            )
 
         checks["database"] = "UP"
 
+
     except Exception as e:
 
-        checks["database"] = f"DOWN: {str(e)}"
+        checks["database"] = (
+            f"DOWN: {str(e)}"
+        )
+
         is_healthy = False
 
-    api_key = os.getenv("GROQ_API_KEY")
+
+    api_key = os.getenv(
+        "GROQ_API_KEY"
+    )
+
 
     checks["ai_service"] = (
         "READY"
@@ -177,21 +382,33 @@ def health_check(request):
         else "MISSING_KEY"
     )
 
+
     if not api_key:
+
         is_healthy = False
 
-    status_code = 200 if is_healthy else 503
+
+    status_code = (
+        200
+        if is_healthy
+        else 503
+    )
+
 
     return JsonResponse(
         {
-            "status": (
+            "status":
                 "healthy"
                 if is_healthy
-                else "unhealthy"
-            ),
-            "timestamp": datetime.now().isoformat(),
-            "components": checks
+                else "unhealthy",
+
+            "timestamp":
+                datetime.now().isoformat(),
+
+            "components":
+                checks
         },
+
         status=status_code
     )
 
@@ -204,13 +421,16 @@ def get_plot_uri():
 
     buf = io.BytesIO()
 
+
     plt.savefig(
         buf,
         format="png",
         bbox_inches="tight"
     )
 
+
     buf.seek(0)
+
 
     uri = urllib.parse.quote(
         base64.b64encode(
@@ -218,7 +438,9 @@ def get_plot_uri():
         )
     )
 
+
     plt.close()
+
 
     return uri
 
@@ -236,7 +458,9 @@ def product_list_view(request):
         "scraped_products.json"
     )
 
+
     data = []
+
 
     if os.path.exists(file_path):
 
@@ -250,11 +474,13 @@ def product_list_view(request):
 
                 data = json.load(f)
 
+
         except Exception as e:
 
             logger.error(
                 f"Erreur lecture produits : {e}"
             )
+
 
     return render(
         request,
@@ -274,10 +500,12 @@ def carte_ventes_view(request):
 
     selected_year = 2024
 
+
     selected_month = request.GET.get(
         "month",
         timezone.now().month
     )
+
 
     path_geojson = os.path.join(
         settings.BASE_DIR,
@@ -285,7 +513,11 @@ def carte_ventes_view(request):
         "departements.geojson"
     )
 
-    france = gpd.read_file(path_geojson)
+
+    france = gpd.read_file(
+        path_geojson
+    )
+
 
     ventes_qs = (
         ActiviteCommerciale.objects
@@ -299,9 +531,11 @@ def carte_ventes_view(request):
         )
     )
 
+
     df_ventes = pd.DataFrame(
         list(ventes_qs)
     )
+
 
     max_pop_obj = (
         Population.objects
@@ -309,17 +543,20 @@ def carte_ventes_view(request):
         .first()
     )
 
+
     vmax_fixed = (
         max_pop_obj.pop * 6
         if max_pop_obj
         else 1000000
     )
 
+
     fig, ax = plt.subplots(
         1,
         1,
         figsize=(10, 10)
     )
+
 
     if not df_ventes.empty:
 
@@ -330,12 +567,14 @@ def carte_ventes_view(request):
             .reset_index()
         )
 
+
         france = france.merge(
             df_regroupe,
             left_on="code",
             right_on="code_dept",
             how="left"
         )
+
 
         france.plot(
             column="ca_tot",
@@ -348,9 +587,11 @@ def carte_ventes_view(request):
                 "color": "lightgrey"
             },
             legend_kwds={
-                "label": "Chiffre d'Affaires (€)"
+                "label":
+                    "Chiffre d'Affaires (€)"
             }
         )
+
 
     else:
 
@@ -359,19 +600,28 @@ def carte_ventes_view(request):
             color="lightgrey"
         )
 
+
     ax.set_axis_off()
 
+
     ax.set_title(
-        f"Ventes par Département - Mois {selected_month}"
+        f"Ventes par Département - "
+        f"Mois {selected_month}"
     )
+
 
     return render(
         request,
         "dashboard/carte.html",
         {
-            "data_map": get_plot_uri(),
-            "selected_month": int(selected_month),
-            "months_range": range(1, 13)
+            "data_map":
+                get_plot_uri(),
+
+            "selected_month":
+                int(selected_month),
+
+            "months_range":
+                range(1, 13)
         }
     )
 
@@ -384,11 +634,14 @@ def carte_ventes_view(request):
 def consultation_meteo(request):
 
     resultats = None
+
     data_map = None
+
 
     date_selectionnee = request.GET.get(
         "date_choisie"
     )
+
 
     if date_selectionnee:
 
@@ -399,11 +652,16 @@ def consultation_meteo(request):
                 "%Y-%m-%d"
             )
 
-            resultats = MeteoArchive.objects.filter(
-                annee=dt_obj.year,
-                mois=dt_obj.month,
-                jour=dt_obj.day
+
+            resultats = (
+                MeteoArchive.objects
+                .filter(
+                    annee=dt_obj.year,
+                    mois=dt_obj.month,
+                    jour=dt_obj.day
+                )
             )
+
 
             path_geojson = os.path.join(
                 settings.BASE_DIR,
@@ -411,15 +669,18 @@ def consultation_meteo(request):
                 "departements.geojson"
             )
 
+
             france = gpd.read_file(
                 path_geojson
             )
+
 
             fig, ax = plt.subplots(
                 1,
                 1,
                 figsize=(10, 10)
             )
+
 
             if resultats.exists():
 
@@ -432,6 +693,7 @@ def consultation_meteo(request):
                         )
                     )
                 )
+
 
                 df_meteo["dep"] = (
                     df_meteo["dep"]
@@ -446,12 +708,14 @@ def consultation_meteo(request):
                     )
                 )
 
+
                 france = france.merge(
                     df_meteo,
                     left_on="code",
                     right_on="dep",
                     how="left"
                 )
+
 
                 france.plot(
                     column="temp_min",
@@ -462,11 +726,17 @@ def consultation_meteo(request):
                         "color": "#f0f0f0"
                     },
                     legend_kwds={
-                        "label": "Température Minimale (°C)",
-                        "orientation": "horizontal",
-                        "pad": 0.05
+                        "label":
+                            "Température Minimale (°C)",
+
+                        "orientation":
+                            "horizontal",
+
+                        "pad":
+                            0.05
                     }
                 )
+
 
             else:
 
@@ -476,14 +746,18 @@ def consultation_meteo(request):
                     edgecolor="white"
                 )
 
+
             ax.set_axis_off()
+
 
             ax.set_title(
                 f"Météo France - "
                 f"{dt_obj.strftime('%d/%m/%Y')}"
             )
 
+
             data_map = get_plot_uri()
+
 
         except Exception as e:
 
@@ -491,13 +765,19 @@ def consultation_meteo(request):
                 f"Erreur Carte Météo : {e}"
             )
 
+
     return render(
         request,
         "dashboard/meteo_calendrier.html",
         {
-            "resultats": resultats,
-            "date_selectionnee": date_selectionnee,
-            "data_map": data_map
+            "resultats":
+                resultats,
+
+            "date_selectionnee":
+                date_selectionnee,
+
+            "data_map":
+                data_map
         }
     )
 
@@ -515,25 +795,33 @@ def carte_population_view(request):
         "departements.geojson"
     )
 
+
     france = gpd.read_file(
         path_geojson
     )
 
+
     pop_qs = (
         Population.objects
         .all()
-        .values("dep", "pop")
+        .values(
+            "dep",
+            "pop"
+        )
     )
+
 
     df_pop = pd.DataFrame(
         list(pop_qs)
     )
+
 
     fig, ax = plt.subplots(
         1,
         1,
         figsize=(10, 10)
     )
+
 
     if not df_pop.empty:
 
@@ -544,6 +832,7 @@ def carte_population_view(request):
             how="left"
         )
 
+
         france.plot(
             column="pop",
             ax=ax,
@@ -553,9 +842,11 @@ def carte_population_view(request):
                 "color": "#f5f5f5"
             },
             legend_kwds={
-                "label": "Nombre d'habitants (Source INSEE)"
+                "label":
+                    "Nombre d'habitants (Source INSEE)"
             }
         )
+
 
     else:
 
@@ -564,17 +855,21 @@ def carte_population_view(request):
             color="lightgrey"
         )
 
+
     ax.set_axis_off()
+
 
     ax.set_title(
         "Population réelle par Département"
     )
 
+
     return render(
         request,
         "dashboard/population.html",
         {
-            "data_map": get_plot_uri()
+            "data_map":
+                get_plot_uri()
         }
     )
 
@@ -590,26 +885,41 @@ def ai_assistant_view(request):
 
         user_query = (
             request.POST
-            .get("message", "")
+            .get(
+                "message",
+                ""
+            )
             .strip()
         )
 
+
         logger.info(
-            f"Requête utilisateur reçue : {user_query}"
+            f"Requête utilisateur reçue : "
+            f"{user_query}"
         )
+
 
         try:
 
-            ai_raw_output = ask_llm_about_db(
-                user_query
+            ai_raw_output = (
+                ask_llm_about_db(
+                    user_query
+                )
             )
 
-            db_data = execute_ai_sql(
-                ai_raw_output
+
+            db_data = (
+                execute_ai_sql(
+                    ai_raw_output
+                )
             )
+
 
             if (
-                isinstance(db_data, dict)
+                isinstance(
+                    db_data,
+                    dict
+                )
                 and db_data.get("rows")
             ):
 
@@ -617,7 +927,9 @@ def ai_assistant_view(request):
                     db_data["columns"]
                 )
 
+
                 formatted_rows = [
+
                     str(
                         dict(
                             zip(
@@ -626,12 +938,16 @@ def ai_assistant_view(request):
                             )
                         )
                     )
-                    for row in db_data["rows"][:3]
+
+                    for row
+                    in db_data["rows"][:3]
                 ]
+
 
                 data_str = " | ".join(
                     formatted_rows
                 )
+
 
                 final_response = (
                     "J'ai analysé les données. "
@@ -639,15 +955,21 @@ def ai_assistant_view(request):
                     f"({cols}) : {data_str}"
                 )
 
+
             else:
 
-                final_response = ai_raw_output
+                final_response = (
+                    ai_raw_output
+                )
+
 
             return JsonResponse(
                 {
-                    "response": final_response
+                    "response":
+                        final_response
                 }
             )
+
 
         except Exception as e:
 
@@ -655,12 +977,16 @@ def ai_assistant_view(request):
                 f"Erreur AI : {e}"
             )
 
+
             return JsonResponse(
                 {
-                    "error": str(e)
+                    "error":
+                        str(e)
                 },
+
                 status=500
             )
+
 
     return render(
         request,
@@ -680,15 +1006,23 @@ def activite_create(request):
         for i in range(1, 93)
     ]
 
+
     mois = range(1, 13)
 
-    annees = [2024, 2025]
+    annees = [
+        2024,
+        2025
+    ]
+
 
     if request.method == "POST":
 
         ville = request.POST["ville"]
+
         annee = request.POST["annee"]
+
         mois_value = request.POST["mois"]
+
 
         existe = (
             ActiviteCommerciale.objects
@@ -700,46 +1034,77 @@ def activite_create(request):
             .exists()
         )
 
+
         if existe:
 
             messages.error(
                 request,
-                "Une activité existe déjà pour cette ville, cette année et ce mois."
+                "Une activité existe déjà pour cette ville, "
+                "cette année et ce mois."
             )
+
 
             return render(
                 request,
                 "dashboard/activite_form.html",
                 {
-                    "departements": departements,
-                    "mois": mois,
-                    "annees": annees
+                    "departements":
+                        departements,
+
+                    "mois":
+                        mois,
+
+                    "annees":
+                        annees
                 }
             )
 
+
         ActiviteCommerciale.objects.create(
-            code_dept=request.POST["code_dept"],
-            bv2022=request.POST["bv2022"],
-            ville=ville,
-            ca_tot=request.POST["ca_tot"],
-            mois=mois_value,
-            annee=annee
+
+            code_dept=
+                request.POST["code_dept"],
+
+            bv2022=
+                request.POST["bv2022"],
+
+            ville=
+                ville,
+
+            ca_tot=
+                request.POST["ca_tot"],
+
+            mois=
+                mois_value,
+
+            annee=
+                annee
         )
+
 
         messages.success(
             request,
             "Activité commerciale ajoutée avec succès."
         )
 
-        return redirect("activite_list")
+
+        return redirect(
+            "activite_list"
+        )
+
 
     return render(
         request,
         "dashboard/activite_form.html",
         {
-            "departements": departements,
-            "mois": mois,
-            "annees": annees
+            "departements":
+                departements,
+
+            "mois":
+                mois,
+
+            "annees":
+                annees
         }
     )
 
@@ -747,13 +1112,18 @@ def activite_create(request):
 @approved_required
 def activite_list(request):
 
-    activites = ActiviteCommerciale.objects.all()
+    activites = (
+        ActiviteCommerciale.objects
+        .all()
+    )
+
 
     return render(
         request,
         "dashboard/activite_list.html",
         {
-            "activites": activites
+            "activites":
+                activites
         }
     )
 
@@ -766,41 +1136,77 @@ def activite_update(request, id):
         id=id
     )
 
+
     departements = [
         str(i).zfill(2)
         for i in range(1, 93)
     ]
 
+
     mois = range(1, 13)
 
-    annees = [2024, 2025]
+    annees = [
+        2024,
+        2025
+    ]
+
 
     if request.method == "POST":
 
-        activite.code_dept = request.POST["code_dept"]
-        activite.bv2022 = request.POST["bv2022"]
-        activite.ville = request.POST["ville"]
-        activite.ca_tot = request.POST["ca_tot"]
-        activite.mois = request.POST["mois"]
-        activite.annee = request.POST["annee"]
+        activite.code_dept = (
+            request.POST["code_dept"]
+        )
+
+        activite.bv2022 = (
+            request.POST["bv2022"]
+        )
+
+        activite.ville = (
+            request.POST["ville"]
+        )
+
+        activite.ca_tot = (
+            request.POST["ca_tot"]
+        )
+
+        activite.mois = (
+            request.POST["mois"]
+        )
+
+        activite.annee = (
+            request.POST["annee"]
+        )
+
 
         activite.save()
+
 
         messages.success(
             request,
             "Activité commerciale modifiée."
         )
 
-        return redirect("activite_list")
+
+        return redirect(
+            "activite_list"
+        )
+
 
     return render(
         request,
         "dashboard/activite_form.html",
         {
-            "activite": activite,
-            "departements": departements,
-            "mois": mois,
-            "annees": annees
+            "activite":
+                activite,
+
+            "departements":
+                departements,
+
+            "mois":
+                mois,
+
+            "annees":
+                annees
         }
     )
 
@@ -813,21 +1219,28 @@ def activite_delete(request, id):
         id=id
     )
 
+
     if request.method == "POST":
 
         activite.delete()
+
 
         messages.success(
             request,
             "Activité commerciale supprimée."
         )
 
-        return redirect("activite_list")
+
+        return redirect(
+            "activite_list"
+        )
+
 
     return render(
         request,
         "dashboard/activite_delete.html",
         {
-            "activite": activite
+            "activite":
+                activite
         }
     )

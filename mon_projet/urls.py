@@ -1,21 +1,39 @@
 from django.contrib import admin
-from django.urls import path, include
 from django.contrib.auth.views import LogoutView
+from django.urls import path, include
 
 from dashboard.views import (
     landing_page,
-    carte_ventes_view,
-    consultation_meteo,
-    carte_population_view,
-    ai_assistant_view,
-    health_check,
-    product_list_view,
+
     CustomLoginView,
-    activite_list,
-    activite_create,
-    activite_update,
-    activite_delete,
+
     register,
+
+    carte_ventes_view,
+
+    consultation_meteo,
+
+    carte_population_view,
+
+    ai_assistant_view,
+
+    health_check,
+
+    product_list_view,
+
+    activite_list,
+
+    activite_create,
+
+    activite_update,
+
+    activite_delete,
+
+    users_view,
+
+    approve_user,
+
+    reject_user,
 )
 
 
@@ -31,6 +49,7 @@ urlpatterns = [
         name="landing"
     ),
 
+
     # ============================================================
     # AUTHENTIFICATION
     # ============================================================
@@ -41,11 +60,15 @@ urlpatterns = [
         name="login"
     ),
 
+
     path(
         "logout/",
-        LogoutView.as_view(next_page="landing"),
+        LogoutView.as_view(
+            next_page="landing"
+        ),
         name="logout"
     ),
+
 
     path(
         "register/",
@@ -53,8 +76,12 @@ urlpatterns = [
         name="register"
     ),
 
+
     # ============================================================
-    # ADMIN DJANGO
+    # ADMINISTRATION DJANGO
+    #
+    # Elle existe toujours techniquement,
+    # mais elle n'est PLUS accessible depuis ton interface.
     # ============================================================
 
     path(
@@ -62,14 +89,18 @@ urlpatterns = [
         admin.site.urls
     ),
 
+
     # ============================================================
     # PROMETHEUS
     # ============================================================
 
     path(
         "",
-        include("django_prometheus.urls")
+        include(
+            "django_prometheus.urls"
+        )
     ),
+
 
     # ============================================================
     # DASHBOARD COMMERCIAL
@@ -78,17 +109,13 @@ urlpatterns = [
     path(
         "carte/",
         carte_ventes_view,
-        name="home"
-    ),
-
-    path(
-        "carte/",
-        carte_ventes_view,
         name="carte_ventes"
     ),
 
+
     # ============================================================
     # METEO
+    # Accessible à tous les utilisateurs connectés
     # ============================================================
 
     path(
@@ -96,6 +123,7 @@ urlpatterns = [
         consultation_meteo,
         name="meteo_calendrier"
     ),
+
 
     # ============================================================
     # POPULATION
@@ -107,6 +135,7 @@ urlpatterns = [
         name="population"
     ),
 
+
     # ============================================================
     # ASSISTANT IA
     # ============================================================
@@ -117,24 +146,6 @@ urlpatterns = [
         name="ai_assistant"
     ),
 
-    # ============================================================
-    # API
-    # ============================================================
-
-    path(
-        "api/v1/",
-        include("api.urls")
-    ),
-
-    # ============================================================
-    # HEALTH CHECK
-    # ============================================================
-
-    path(
-        "health/",
-        health_check,
-        name="health_check"
-    ),
 
     # ============================================================
     # ARTICLES
@@ -146,6 +157,7 @@ urlpatterns = [
         name="articles_list"
     ),
 
+
     # ============================================================
     # GESTION ACTIVITE COMMERCIALE
     # ============================================================
@@ -156,11 +168,13 @@ urlpatterns = [
         name="activite_list"
     ),
 
+
     path(
         "activite/create/",
         activite_create,
         name="activite_create"
     ),
+
 
     path(
         "activite/update/<int:id>/",
@@ -168,9 +182,57 @@ urlpatterns = [
         name="activite_update"
     ),
 
+
     path(
         "activite/delete/<int:id>/",
         activite_delete,
         name="activite_delete"
     ),
+
+
+    # ============================================================
+    # ADMINISTRATION INTERNE DU SITE
+    # ============================================================
+
+    path(
+        "users/",
+        users_view,
+        name="users"
+    ),
+
+
+    path(
+        "users/<int:user_id>/approve/",
+        approve_user,
+        name="approve_user"
+    ),
+
+
+    path(
+        "users/<int:user_id>/reject/",
+        reject_user,
+        name="reject_user"
+    ),
+
+
+    # ============================================================
+    # API
+    # ============================================================
+
+    path(
+        "api/v1/",
+        include("api.urls")
+    ),
+
+
+    # ============================================================
+    # HEALTH CHECK
+    # ============================================================
+
+    path(
+        "health/",
+        health_check,
+        name="health_check"
+    ),
+
 ]

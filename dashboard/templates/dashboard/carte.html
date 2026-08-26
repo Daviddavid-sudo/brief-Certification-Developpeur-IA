@@ -1,40 +1,538 @@
+
 {% extends 'dashboard/base.html' %}
 
-{% block title %}Dashboard Ventes{% endblock %}
+{% block title %}Ventes — DataPilot{% endblock %}
 
 {% block content %}
-    <h1>Analyse Géographique des Ventes</h1>
-    <p style="color: #666;">Répartition du Chiffre d'Affaires par département</p>
-    <hr>
 
-    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e0e0e0;">
-        <form method="get" id="filter-form">
-            <label for="month" style="font-weight: bold; margin-right: 10px;">Sélectionner un mois :</label>
-            <select name="month" id="month" onchange="this.form.submit()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ccc; background-color: white;">
-                {% for m in months_range %}
-                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
-                        Mois {{ m }}
-                    </option>
-                {% endfor %}
-            </select>
-        </form>
+<style>
+
+    /* =========================================================
+       PAGE HEADER
+    ========================================================= */
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 30px;
+
+        margin-bottom: 30px;
+    }
+
+    .page-title {
+        margin: 0;
+
+        font-size: 30px;
+        font-weight: 700;
+
+        letter-spacing: -0.7px;
+
+        color: #0f172a;
+    }
+
+    .page-subtitle {
+        margin: 8px 0 0;
+
+        font-size: 14px;
+
+        color: #64748b;
+    }
+
+
+    /* =========================================================
+       KPI
+    ========================================================= */
+
+    .kpi-grid {
+        display: grid;
+
+        grid-template-columns:
+            repeat(3, 1fr);
+
+        gap: 16px;
+
+        margin-bottom: 24px;
+    }
+
+    .kpi-card {
+        background: #ffffff;
+
+        border: 1px solid #e2e8f0;
+
+        border-radius: 10px;
+
+        padding: 20px 22px;
+    }
+
+    .kpi-label {
+        margin: 0 0 8px;
+
+        color: #64748b;
+
+        font-size: 12px;
+        font-weight: 600;
+
+        text-transform: uppercase;
+
+        letter-spacing: 0.5px;
+    }
+
+    .kpi-value {
+        margin: 0;
+
+        color: #0f172a;
+
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .kpi-description {
+        margin: 5px 0 0;
+
+        color: #94a3b8;
+
+        font-size: 12px;
+    }
+
+
+    /* =========================================================
+       FILTER
+    ========================================================= */
+
+    .filter-card {
+        display: flex;
+
+        align-items: center;
+        justify-content: space-between;
+
+        gap: 20px;
+
+        padding: 16px 18px;
+
+        margin-bottom: 20px;
+
+        background: #ffffff;
+
+        border: 1px solid #e2e8f0;
+
+        border-radius: 10px;
+    }
+
+    .filter-label {
+        display: block;
+
+        margin-bottom: 4px;
+
+        color: #0f172a;
+
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .filter-description {
+        margin: 0;
+
+        color: #94a3b8;
+
+        font-size: 12px;
+    }
+
+    .month-select {
+        min-width: 150px;
+
+        padding: 9px 35px 9px 12px;
+
+        border: 1px solid #cbd5e1;
+
+        border-radius: 7px;
+
+        background: #ffffff;
+
+        color: #334155;
+
+        font-size: 13px;
+
+        cursor: pointer;
+
+        outline: none;
+    }
+
+    .month-select:focus {
+        border-color: #2563eb;
+
+        box-shadow:
+            0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+
+    /* =========================================================
+       MAP
+    ========================================================= */
+
+    .map-card {
+        overflow: hidden;
+
+        background: #ffffff;
+
+        border: 1px solid #e2e8f0;
+
+        border-radius: 10px;
+    }
+
+    .map-header {
+        display: flex;
+
+        align-items: center;
+        justify-content: space-between;
+
+        padding: 18px 22px;
+
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .map-title {
+        margin: 0;
+
+        color: #0f172a;
+
+        font-size: 15px;
+        font-weight: 650;
+    }
+
+    .map-period {
+        padding: 5px 9px;
+
+        border-radius: 6px;
+
+        background: #eff6ff;
+
+        color: #2563eb;
+
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .map-content {
+        padding: 25px;
+
+        text-align: center;
+
+        background: #fafbfc;
+    }
+
+    .map-image {
+        display: block;
+
+        max-width: 100%;
+
+        height: auto;
+
+        margin: 0 auto;
+
+        border-radius: 6px;
+    }
+
+    .map-footer {
+        padding: 12px 22px;
+
+        border-top: 1px solid #e2e8f0;
+
+        color: #94a3b8;
+
+        font-size: 11px;
+
+        text-align: left;
+    }
+
+
+    /* =========================================================
+       EMPTY STATE
+    ========================================================= */
+
+    .empty-state {
+        padding: 70px 20px;
+
+        text-align: center;
+    }
+
+    .empty-icon {
+        width: 44px;
+        height: 44px;
+
+        display: flex;
+
+        align-items: center;
+        justify-content: center;
+
+        margin: 0 auto 15px;
+
+        border-radius: 10px;
+
+        background: #f1f5f9;
+
+        color: #64748b;
+
+        font-size: 20px;
+    }
+
+    .empty-state h3 {
+        margin: 0 0 6px;
+
+        color: #334155;
+
+        font-size: 15px;
+    }
+
+    .empty-state p {
+        margin: 0;
+
+        color: #94a3b8;
+
+        font-size: 13px;
+    }
+
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+
+    @media (max-width: 800px) {
+
+        .page-header {
+            align-items: flex-start;
+
+            flex-direction: column;
+        }
+
+        .kpi-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .filter-card {
+            align-items: flex-start;
+
+            flex-direction: column;
+        }
+
+        .month-select {
+            width: 100%;
+        }
+
+        .map-header {
+            align-items: flex-start;
+
+            flex-direction: column;
+
+            gap: 10px;
+        }
+
+    }
+
+</style>
+
+
+<!-- =========================================================
+     HEADER
+========================================================== -->
+
+<div class="page-header">
+
+    <div>
+
+        <h1 class="page-title">
+            Analyse des ventes
+        </h1>
+
+        <p class="page-subtitle">
+            Visualisez la répartition du chiffre d'affaires
+            par département.
+        </p>
+
     </div>
 
-    <div class="map-wrapper" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+</div>
+
+
+<!-- =========================================================
+     KPI
+========================================================== -->
+
+<div class="kpi-grid">
+
+    <div class="kpi-card">
+
+        <p class="kpi-label">
+            Période analysée
+        </p>
+
+        <p class="kpi-value">
+            {{ selected_month }}
+        </p>
+
+        <p class="kpi-description">
+            Mois sélectionné
+        </p>
+
+    </div>
+
+
+    <div class="kpi-card">
+
+        <p class="kpi-label">
+            Année
+        </p>
+
+        <p class="kpi-value">
+            2024
+        </p>
+
+        <p class="kpi-description">
+            Données commerciales
+        </p>
+
+    </div>
+
+
+    <div class="kpi-card">
+
+        <p class="kpi-label">
+            Analyse
+        </p>
+
+        <p class="kpi-value">
+            France
+        </p>
+
+        <p class="kpi-description">
+            Répartition départementale
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     FILTER
+========================================================== -->
+
+<div class="filter-card">
+
+    <div>
+
+        <span class="filter-label">
+            Période
+        </span>
+
+        <p class="filter-description">
+            Sélectionnez le mois à analyser.
+        </p>
+
+    </div>
+
+
+    <form
+        method="get"
+        id="filter-form"
+    >
+
+        <select
+            name="month"
+            id="month"
+            class="month-select"
+            onchange="this.form.submit()"
+        >
+
+            {% for m in months_range %}
+
+                <option
+                    value="{{ m }}"
+                    {% if m == selected_month %}
+                        selected
+                    {% endif %}
+                >
+
+                    Mois {{ m }}
+
+                </option>
+
+            {% endfor %}
+
+        </select>
+
+    </form>
+
+</div>
+
+
+<!-- =========================================================
+     MAP
+========================================================== -->
+
+<div class="map-card">
+
+
+    <div class="map-header">
+
+        <h2 class="map-title">
+            Chiffre d'affaires par département
+        </h2>
+
+        <span class="map-period">
+            Mois {{ selected_month }} · 2024
+        </span>
+
+    </div>
+
+
+    <div class="map-content">
+
         {% if data_map %}
-            <img src="data:image/png;base64,{{ data_map }}" alt="Carte des ventes" style="max-width: 100%; height: auto; border-radius: 5px;">
-            <p style="margin-top: 15px; color: #888; font-style: italic;">
-                Données affichées pour le mois {{ selected_month }}
-            </p>
+
+            <img
+                src="data:image/png;base64,{{ data_map }}"
+                alt="Carte du chiffre d'affaires par département"
+                class="map-image"
+            >
+
         {% else %}
-            <div style="padding: 50px; color: #999;">
-                <p>⚠️ Aucune donnée disponible pour ce mois.</p>
+
+            <div class="empty-state">
+
+                <div class="empty-icon">
+                    —
+                </div>
+
+                <h3>
+                    Aucune donnée disponible
+                </h3>
+
+                <p>
+                    Aucune donnée commerciale n'est disponible
+                    pour le mois sélectionné.
+                </p>
+
             </div>
+
         {% endif %}
+
     </div>
 
-    <br>
-    <a href="/admin" style="display: inline-block; margin-top: 20px; text-decoration: none; color: #007bff; font-size: 0.9em;">
-        ⚙️ Accéder à l'administration
-    </a>
+
+    {% if data_map %}
+
+        <div class="map-footer">
+
+            Données affichées pour le mois {{ selected_month }}
+            de l'année 2024.
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+
 {% endblock %}
+

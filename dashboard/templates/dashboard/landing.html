@@ -1,124 +1,596 @@
 
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Dashboard IA</title>
+    <title>DataPilot — Pilotage commercial</title>
 
     <style>
+
         * {
             box-sizing: border-box;
         }
 
-        body {
-            margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f5f7fa;
-            color: #1f2937;
+        :root {
+            --bg: #f8fafc;
+            --white: #ffffff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #eff6ff;
         }
 
-        .hero {
-            min-height: 100vh;
+        body {
+            margin: 0;
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Helvetica,
+                Arial,
+                sans-serif;
+
+            background: var(--bg);
+            color: var(--text);
+        }
+
+
+        /* =====================================================
+           NAVBAR
+        ===================================================== */
+
+        .navbar {
+            height: 72px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 0 6%;
+
+            background: rgba(248, 250, 252, 0.9);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            text-decoration: none;
+            color: var(--text);
+        }
+
+        .logo-mark {
+            width: 34px;
+            height: 34px;
+
             display: flex;
             align-items: center;
             justify-content: center;
-            text-align: center;
-            padding: 40px 20px;
+
+            border-radius: 9px;
+
+            background: var(--primary);
+            color: white;
+
+            font-size: 17px;
+            font-weight: 700;
         }
 
-        .container {
-            width: 100%;
-            max-width: 800px;
+        .logo-name {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .nav-login {
+            text-decoration: none;
+
+            color: #475569;
+
+            font-size: 14px;
+            font-weight: 600;
+
+            padding: 9px 15px;
+            border-radius: 7px;
+
+            transition: 0.15s ease;
+        }
+
+        .nav-login:hover {
+            background: white;
+            color: var(--text);
+        }
+
+
+        /* =====================================================
+           HERO
+        ===================================================== */
+
+        .hero {
+            max-width: 1100px;
+
+            margin: 0 auto;
+
+            padding: 105px 30px 90px;
+
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+
+            padding: 7px 12px;
+
+            margin-bottom: 25px;
+
+            border: 1px solid #dbeafe;
+            border-radius: 999px;
+
+            background: var(--primary-light);
+
+            color: var(--primary);
+
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+
+            margin-right: 8px;
+
+            border-radius: 50%;
+
+            background: var(--primary);
         }
 
         h1 {
-            font-size: 52px;
-            margin: 0 0 20px;
+            max-width: 850px;
+
+            margin: 0 auto;
+
+            font-size: clamp(42px, 6vw, 68px);
+
+            line-height: 1.05;
+
+            letter-spacing: -2.8px;
+
+            font-weight: 750;
         }
 
-        p {
-            font-size: 20px;
-            color: #6b7280;
-            line-height: 1.6;
-            margin: 0 0 35px;
+        .highlight {
+            color: var(--primary);
         }
 
-        .buttons {
+        .hero-description {
+            max-width: 650px;
+
+            margin: 28px auto 0;
+
+            font-size: 18px;
+
+            line-height: 1.7;
+
+            color: var(--muted);
+        }
+
+
+        /* =====================================================
+           BUTTONS
+        ===================================================== */
+
+        .actions {
             display: flex;
+
             justify-content: center;
+
             align-items: center;
-            gap: 15px;
+
+            gap: 12px;
+
+            margin-top: 36px;
         }
 
         .btn {
-            display: inline-block;
-            padding: 14px 28px;
+            display: inline-flex;
+
+            align-items: center;
+            justify-content: center;
+
+            min-width: 145px;
+
+            padding: 13px 22px;
+
             border-radius: 8px;
+
             text-decoration: none;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
+
+            font-size: 14px;
+            font-weight: 600;
+
+            transition:
+                transform 0.15s ease,
+                background 0.15s ease,
+                box-shadow 0.15s ease;
         }
 
-        .login {
-            background: #2563eb;
+        .btn-primary {
+            background: var(--primary);
             color: white;
+
+            box-shadow:
+                0 4px 12px rgba(37, 99, 235, 0.18);
         }
 
-        .login:hover {
-            background: #1d4ed8;
+        .btn-primary:hover {
+            background: var(--primary-dark);
+
+            transform: translateY(-1px);
+
+            box-shadow:
+                0 7px 18px rgba(37, 99, 235, 0.22);
         }
 
-        .register {
+        .btn-secondary {
             background: white;
-            color: #2563eb;
-            border: 1px solid #2563eb;
+
+            color: #334155;
+
+            border: 1px solid var(--border);
         }
 
-        .register:hover {
-            background: #eff6ff;
+        .btn-secondary:hover {
+            background: #f8fafc;
+
+            border-color: #cbd5e1;
+
+            transform: translateY(-1px);
         }
+
+
+        /* =====================================================
+           FEATURES
+        ===================================================== */
+
+        .features {
+            max-width: 1050px;
+
+            margin: 0 auto;
+
+            padding: 0 30px 90px;
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 18px;
+        }
+
+        .feature {
+            padding: 26px;
+
+            background: white;
+
+            border: 1px solid var(--border);
+
+            border-radius: 12px;
+
+            text-align: left;
+
+            transition:
+                transform 0.15s ease,
+                box-shadow 0.15s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-2px);
+
+            box-shadow:
+                0 8px 25px rgba(15, 23, 42, 0.06);
+        }
+
+        .feature-icon {
+            width: 38px;
+            height: 38px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            margin-bottom: 18px;
+
+            border-radius: 8px;
+
+            background: var(--primary-light);
+
+            color: var(--primary);
+
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .feature h3 {
+            margin: 0 0 8px;
+
+            font-size: 15px;
+            font-weight: 650;
+        }
+
+        .feature p {
+            margin: 0;
+
+            color: var(--muted);
+
+            font-size: 13px;
+
+            line-height: 1.6;
+        }
+
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
+
+        footer {
+            padding: 25px 30px;
+
+            border-top: 1px solid var(--border);
+
+            text-align: center;
+
+            color: #94a3b8;
+
+            font-size: 12px;
+        }
+
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media (max-width: 700px) {
+
+            .navbar {
+                padding: 0 20px;
+            }
+
+            .hero {
+                padding:
+                    75px 20px
+                    60px;
+            }
+
+            h1 {
+                letter-spacing: -1.8px;
+            }
+
+            .hero-description {
+                font-size: 16px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 280px;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+
+                padding:
+                    0 20px
+                    60px;
+            }
+
+        }
+
     </style>
+
 </head>
+
 
 <body>
 
-    <main class="hero">
 
-        <div class="container">
+<!-- =========================================================
+     NAVBAR
+========================================================== -->
 
-            <h1>Dashboard IA</h1>
+<header class="navbar">
 
-            <p>
-                Analysez vos données commerciales,
-                consultez la population et la météo,
-                et utilisez notre assistant intelligent
-                pour faciliter votre prise de décision.
-            </p>
+    <a href="{% url 'landing' %}" class="logo">
 
-            <div class="buttons">
+        <span class="logo-mark">
+            D
+        </span>
 
-                <!-- CONNEXION -->
-                <a href="/login/" class="btn login">
-                    Se connecter
-                </a>
+        <span class="logo-name">
+            DataPilot
+        </span>
 
-                <!-- INSCRIPTION -->
-                <a
-                    href="http://localhost:8000/register/"
-                    class="btn register"
-                >
-                    Créer un compte
-                </a>
+    </a>
 
-            </div>
+
+    <a
+        href="{% url 'login' %}"
+        class="nav-login"
+    >
+        Se connecter
+    </a>
+
+</header>
+
+
+
+<!-- =========================================================
+     HERO
+========================================================== -->
+
+<main>
+
+    <section class="hero">
+
+
+        <div class="badge">
+
+            <span class="badge-dot"></span>
+
+            Plateforme de pilotage commercial
 
         </div>
 
-    </main>
+
+        <h1>
+
+            Transformez vos données
+            en décisions
+
+            <span class="highlight">
+                plus intelligentes.
+            </span>
+
+        </h1>
+
+
+        <p class="hero-description">
+
+            DataPilot centralise vos données commerciales,
+            météorologiques et démographiques pour vous
+            aider à comprendre votre activité et prendre
+            de meilleures décisions.
+
+        </p>
+
+
+        <div class="actions">
+
+
+            <a
+                href="{% url 'login' %}"
+                class="btn btn-primary"
+            >
+
+                Se connecter
+
+            </a>
+
+
+            <a
+                href="{% url 'register' %}"
+                class="btn btn-secondary"
+            >
+
+                Créer un compte
+
+            </a>
+
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         FEATURES
+    ====================================================== -->
+
+    <section class="features">
+
+
+        <article class="feature">
+
+            <div class="feature-icon">
+                ↗
+            </div>
+
+            <h3>
+                Analyse commerciale
+            </h3>
+
+            <p>
+                Visualisez votre chiffre d'affaires
+                et identifiez rapidement les tendances
+                géographiques de votre activité.
+            </p>
+
+        </article>
+
+
+
+        <article class="feature">
+
+            <div class="feature-icon">
+                ◌
+            </div>
+
+            <h3>
+                Données contextuelles
+            </h3>
+
+            <p>
+                Croisez les données commerciales avec
+                la météo et la population pour mieux
+                comprendre votre environnement.
+            </p>
+
+        </article>
+
+
+
+        <article class="feature">
+
+            <div class="feature-icon">
+                ✦
+            </div>
+
+            <h3>
+                Assistant IA
+            </h3>
+
+            <p>
+                Interrogez vos données en langage naturel
+                grâce à un assistant intelligent intégré
+                à votre plateforme.
+            </p>
+
+        </article>
+
+
+    </section>
+
+</main>
+
+
+
+<!-- =========================================================
+     FOOTER
+========================================================== -->
+
+<footer>
+
+    DataPilot · Plateforme de pilotage commercial
+
+</footer>
+
 
 </body>
+
 </html>
 
