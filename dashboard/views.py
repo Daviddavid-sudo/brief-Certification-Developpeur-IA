@@ -500,12 +500,15 @@ def carte_ventes_view(request):
 
     selected_year = 2024
 
-
     selected_month = request.GET.get(
         "month",
         timezone.now().month
     )
 
+    try:
+        selected_month = int(selected_month)
+    except (TypeError, ValueError):
+        selected_month = timezone.now().month
 
     path_geojson = os.path.join(
         settings.BASE_DIR,
@@ -513,11 +516,13 @@ def carte_ventes_view(request):
         "departements.geojson"
     )
 
-
     france = gpd.read_file(
         path_geojson
     )
 
+    # ========================================================
+    # RÉCUPÉRATION DES VENTES
+    # ========================================================
 
     ventes_qs = (
         ActiviteCommerciale.objects
@@ -531,11 +536,120 @@ def carte_ventes_view(request):
         )
     )
 
-
     df_ventes = pd.DataFrame(
         list(ventes_qs)
     )
 
+    # ========================================================
+    # DONNÉES PAR DÉPARTEMENT
+    # ========================================================
+
+    top_departements = []
+
+    total_ca = 0
+
+    if not df_ventes.empty:
+
+        df_ventes["code_dept"] = (
+            df_ventes["code_dept"]
+            .astype(str)
+            .str.strip()
+        )
+
+        df_ventes["ca_tot"] = pd.to_numeric(
+            df_ventes["ca_tot"],
+            errors="coerce"
+        ).fillna(0)
+
+        df_regroupe = (
+            df_ventes
+            .groupby("code_dept", as_index=False)["ca_tot"]
+            .sum()
+            .sort_values(
+                "ca_tot",
+                ascending=False
+            )
+        )
+
+        # CA TOTAL
+        total_ca = df_regroupe["ca_tot"].sum()
+
+        # ====================================================
+        # TOP 10
+        # ====================================================
+
+        top10 = (
+            df_regroupe
+            .head(10)
+            .reset_index(drop=True)
+        )
+
+        for index, row in top10.iterrows():
+
+            code = str(row["code_dept"])
+
+            nom = code
+
+            try:
+
+                departement_geo = france[
+                    france["code"].astype(str).str.strip() == code
+                ]
+
+                if not departement_geo.empty:
+
+                    if "nom" in departement_geo.columns:
+
+                        nom = departement_geo.iloc[0]["nom"]
+
+                    elif "name" in departement_geo.columns:
+
+                        nom = departement_geo.iloc[0]["name"]
+
+            except Exception:
+
+                pass
+
+            top_departements.append(
+                {
+                    "rang": index + 1,
+                    "code": code,
+                    "nom": nom,
+                    "ca": row["ca_tot"]
+                }
+            )
+
+    # ========================================================
+    # KPI
+    # ========================================================
+
+    top_department = (
+        top_departements[0]["nom"]
+        if top_departements
+        else "—"
+    )
+
+    top_department_ca = (
+        top_departements[0]["ca"]
+        if top_departements
+        else 0
+    )
+
+    nombre_departements = (
+        len(df_ventes["code_dept"].unique())
+        if not df_ventes.empty
+        else 0
+    )
+
+    ca_moyen = (
+        total_ca / nombre_departements
+        if nombre_departements > 0
+        else 0
+    )
+
+    # ========================================================
+    # CARTE
+    # ========================================================
 
     max_pop_obj = (
         Population.objects
@@ -543,13 +657,11 @@ def carte_ventes_view(request):
         .first()
     )
 
-
     vmax_fixed = (
         max_pop_obj.pop * 6
         if max_pop_obj
         else 1000000
     )
-
 
     fig, ax = plt.subplots(
         1,
@@ -557,16 +669,7 @@ def carte_ventes_view(request):
         figsize=(10, 10)
     )
 
-
     if not df_ventes.empty:
-
-        df_regroupe = (
-            df_ventes
-            .groupby("code_dept")["ca_tot"]
-            .sum()
-            .reset_index()
-        )
-
 
         france = france.merge(
             df_regroupe,
@@ -574,7 +677,6 @@ def carte_ventes_view(request):
             right_on="code_dept",
             how="left"
         )
-
 
         france.plot(
             column="ca_tot",
@@ -592,7 +694,6 @@ def carte_ventes_view(request):
             }
         )
 
-
     else:
 
         france.plot(
@@ -600,15 +701,17 @@ def carte_ventes_view(request):
             color="lightgrey"
         )
 
-
     ax.set_axis_off()
 
-
     ax.set_title(
-        f"Ventes par Département - "
-        f"Mois {selected_month}"
+        f"Ventes par Département - Mois {selected_month}",
+        fontsize=16,
+        fontweight="bold"
     )
 
+    # ========================================================
+    # ENVOI AU TEMPLATE
+    # ========================================================
 
     return render(
         request,
@@ -618,10 +721,30 @@ def carte_ventes_view(request):
                 get_plot_uri(),
 
             "selected_month":
-                int(selected_month),
+                selected_month,
 
             "months_range":
-                range(1, 13)
+                range(1, 13),
+
+            # TOP 10
+            "top_departements":
+                top_departements,
+
+            # KPI
+            "total_ca":
+                total_ca,
+
+            "top_department":
+                top_department,
+
+            "top_department_ca":
+                top_department_ca,
+
+            "ca_moyen":
+                ca_moyen,
+
+            "nombre_departements":
+                nombre_departements
         }
     )
 
