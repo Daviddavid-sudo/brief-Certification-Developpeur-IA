@@ -1,482 +1,500 @@
 {% extends "dashboard/base.html" %}
 
-{% block title %}Gestion des utilisateurs{% endblock %}
+
+{% block title %}
+Gestion des utilisateurs — DataPilot
+{% endblock %}
+
+
+{% block page_title %}
+Utilisateurs
+{% endblock %}
+
+
+{% block page_description %}
+Gérez les accès à la plateforme.
+{% endblock %}
+
 
 {% block content %}
 
-<div class="admin-page">
+<style>
 
-    <div class="page-header">
+    .users-card {
 
-        <div>
-            <p class="eyebrow">ADMINISTRATION</p>
-            <h1>Utilisateurs</h1>
-            <p class="subtitle">
-                Gérez les comptes et leurs autorisations d'accès.
-            </p>
-        </div>
+        background: white;
+
+        border: 1px solid #e5e7eb;
+
+        border-radius: 10px;
+
+        overflow: hidden;
+
+    }
+
+
+    .users-header {
+
+        padding: 20px 24px;
+
+        border-bottom: 1px solid #e5e7eb;
+
+    }
+
+
+    .users-header h2 {
+
+        margin: 0;
+
+        font-size: 17px;
+
+    }
+
+
+    .users-header p {
+
+        margin: 5px 0 0;
+
+        color: #6b7280;
+
+        font-size: 13px;
+
+    }
+
+
+    .users-table {
+
+        width: 100%;
+
+        border-collapse: collapse;
+
+    }
+
+
+    .users-table th {
+
+        text-align: left;
+
+        padding: 13px 20px;
+
+        background: #f9fafb;
+
+        border-bottom: 1px solid #e5e7eb;
+
+        color: #6b7280;
+
+        font-size: 11px;
+
+        text-transform: uppercase;
+
+        letter-spacing: 0.05em;
+
+    }
+
+
+    .users-table td {
+
+        padding: 16px 20px;
+
+        border-bottom: 1px solid #f0f0f0;
+
+        font-size: 14px;
+
+    }
+
+
+    .users-table tr:last-child td {
+
+        border-bottom: none;
+
+    }
+
+
+    .username-cell {
+
+        font-weight: 600;
+
+    }
+
+
+    .email-cell {
+
+        color: #6b7280;
+
+    }
+
+
+    .badge {
+
+        display: inline-block;
+
+        padding: 5px 9px;
+
+        border-radius: 999px;
+
+        font-size: 11px;
+
+        font-weight: 600;
+
+    }
+
+
+    .badge-admin {
+
+        background: #eef2ff;
+
+        color: #4338ca;
+
+    }
+
+
+    .badge-approved {
+
+        background: #ecfdf5;
+
+        color: #047857;
+
+    }
+
+
+    .badge-pending {
+
+        background: #fffbeb;
+
+        color: #b45309;
+
+    }
+
+
+    .actions {
+
+        display: flex;
+
+        gap: 8px;
+
+    }
+
+
+    .action-btn {
+
+        border: none;
+
+        border-radius: 6px;
+
+        padding: 7px 11px;
+
+        font-family: inherit;
+
+        font-size: 12px;
+
+        font-weight: 600;
+
+        cursor: pointer;
+
+    }
+
+
+    .approve-btn {
+
+        background: #ecfdf5;
+
+        color: #047857;
+
+    }
+
+
+    .approve-btn:hover {
+
+        background: #d1fae5;
+
+    }
+
+
+    .reject-btn {
+
+        background: #fef2f2;
+
+        color: #b91c1c;
+
+    }
+
+
+    .reject-btn:hover {
+
+        background: #fee2e2;
+
+    }
+
+
+    .current-user {
+
+        color: #9ca3af;
+
+        font-size: 12px;
+
+    }
+
+
+    .empty {
+
+        padding: 40px;
+
+        text-align: center;
+
+        color: #6b7280;
+
+    }
+
+
+    @media (max-width: 700px) {
+
+        .users-table {
+
+            min-width: 650px;
+
+        }
+
+        .users-card {
+
+            overflow-x: auto;
+
+        }
+
+    }
+
+</style>
+
+
+<div class="users-card">
+
+
+    <div class="users-header">
+
+        <h2>
+            Gestion des comptes
+        </h2>
+
+        <p>
+            Approuvez ou désactivez l'accès des utilisateurs à la plateforme.
+        </p>
 
     </div>
 
 
-    {% if messages %}
+    {% if users %}
 
-        {% for message in messages %}
+        <table class="users-table">
 
-            <div class="message">
-                {{ message }}
-            </div>
+            <thead>
 
-        {% endfor %}
+                <tr>
 
-    {% endif %}
+                    <th>
+                        Utilisateur
+                    </th>
 
+                    <th>
+                        Email
+                    </th>
 
-    <div class="users-card">
+                    <th>
+                        Statut
+                    </th>
 
-        <div class="card-header">
+                    <th>
+                        Inscription
+                    </th>
 
-            <div>
-                <h2>Comptes utilisateurs</h2>
-                <p>
-                    {{ users|length }} utilisateur{{ users|length|pluralize }}
-                </p>
-            </div>
+                    <th>
+                        Action
+                    </th>
 
-        </div>
+                </tr>
 
-
-        <div class="table-wrapper">
-
-            <table>
-
-                <thead>
-
-                    <tr>
-                        <th>Utilisateur</th>
-                        <th>Email</th>
-                        <th>Date d'inscription</th>
-                        <th>Statut</th>
-                        <th>Accès</th>
-                        <th>Action</th>
-                    </tr>
-
-                </thead>
+            </thead>
 
 
-                <tbody>
+            <tbody>
 
-                {% for user_item in users %}
+
+                {% for account in users %}
 
                     <tr>
+
 
                         <td>
 
-                            <div class="user-cell">
+                            <div class="username-cell">
 
-                                <div class="avatar">
-                                    {{ user_item.username|first|upper }}
-                                </div>
-
-                                <div>
-                                    <strong>
-                                        {{ user_item.username }}
-                                    </strong>
-
-                                    {% if user_item.is_staff %}
-                                        <span class="admin-label">
-                                            Administrateur
-                                        </span>
-                                    {% endif %}
-                                </div>
+                                {{ account.username }}
 
                             </div>
+
+                            {% if account == user %}
+
+                                <div class="current-user">
+                                    Vous
+                                </div>
+
+                            {% endif %}
 
                         </td>
 
 
-                        <td>
+                        <td class="email-cell">
 
-                            {% if user_item.email %}
-                                {{ user_item.email }}
+                            {% if account.email %}
+
+                                {{ account.email }}
+
                             {% else %}
-                                <span class="muted">
-                                    Aucun email
-                                </span>
+
+                                —
+
                             {% endif %}
 
                         </td>
 
 
                         <td>
-                            {{ user_item.date_joined|date:"d/m/Y" }}
-                        </td>
 
 
-                        <td>
-
-                            {% if user_item.is_staff %}
+                            {% if account.is_staff %}
 
                                 <span class="badge badge-admin">
+
                                     Administrateur
+
                                 </span>
 
-                            {% elif user_item.profile.is_approved %}
+
+                            {% elif account.profile.is_approved %}
 
                                 <span class="badge badge-approved">
+
                                     Approuvé
+
                                 </span>
+
 
                             {% else %}
 
                                 <span class="badge badge-pending">
+
                                     En attente
+
                                 </span>
 
                             {% endif %}
+
 
                         </td>
 
 
                         <td>
 
-                            {% if user_item.is_staff %}
-
-                                <span class="access-full">
-                                    Accès complet
-                                </span>
-
-                            {% elif user_item.profile.is_approved %}
-
-                                <span class="access-full">
-                                    Accès complet
-                                </span>
-
-                            {% else %}
-
-                                <span class="access-limited">
-                                    Météo uniquement
-                                </span>
-
-                            {% endif %}
+                            {{ account.date_joined|date:"d/m/Y" }}
 
                         </td>
 
 
                         <td>
 
-                            {% if user_item != request.user %}
 
-                                {% if not user_item.is_staff %}
+                            {% if account != user and not account.is_staff %}
 
-                                    {% if user_item.profile.is_approved %}
+
+                                <div class="actions">
+
+
+                                    {% if account.profile.is_approved %}
+
 
                                         <form
                                             method="post"
-                                            action="{% url 'approve_user' user_item.id %}"
+                                            action="{% url 'reject_user' account.id %}"
                                         >
 
                                             {% csrf_token %}
 
                                             <button
                                                 type="submit"
-                                                class="action-button revoke"
+                                                class="action-btn reject-btn"
                                             >
+
                                                 Retirer l'accès
+
                                             </button>
 
                                         </form>
+
 
                                     {% else %}
 
+
                                         <form
                                             method="post"
-                                            action="{% url 'approve_user' user_item.id %}"
+                                            action="{% url 'approve_user' account.id %}"
                                         >
 
                                             {% csrf_token %}
 
                                             <button
                                                 type="submit"
-                                                class="action-button approve"
+                                                class="action-btn approve-btn"
                                             >
-                                                Autoriser l'accès
+
+                                                Approuver
+
                                             </button>
 
                                         </form>
+
 
                                     {% endif %}
 
 
-                                    <form
-                                        method="post"
-                                        action="{% url 'reject_user' user_item.id %}"
-                                        onsubmit="return confirm('Supprimer définitivement cet utilisateur ?');"
-                                    >
+                                </div>
 
-                                        {% csrf_token %}
-
-                                        <button
-                                            type="submit"
-                                            class="delete-button"
-                                        >
-                                            Supprimer
-                                        </button>
-
-                                    </form>
-
-                                {% else %}
-
-                                    <span class="protected">
-                                        Protégé
-                                    </span>
-
-                                {% endif %}
 
                             {% else %}
 
-                                <span class="protected">
-                                    Votre compte
+                                <span class="current-user">
+
+                                    —
+
                                 </span>
 
                             {% endif %}
 
+
                         </td>
 
-                    </tr>
-
-                {% empty %}
-
-                    <tr>
-
-                        <td colspan="6" class="empty">
-                            Aucun utilisateur trouvé.
-                        </td>
 
                     </tr>
 
                 {% endfor %}
 
-                </tbody>
 
-            </table>
+            </tbody>
+
+        </table>
+
+
+    {% else %}
+
+
+        <div class="empty">
+
+            Aucun utilisateur enregistré.
 
         </div>
 
-    </div>
+
+    {% endif %}
+
 
 </div>
 
-
-<style>
-
-    .admin-page {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-
-    .page-header {
-        margin-bottom: 30px;
-    }
-
-    .eyebrow {
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 1.5px;
-        color: #2563eb;
-        margin: 0 0 8px;
-    }
-
-    .page-header h1 {
-        margin: 0;
-        font-size: 32px;
-        color: #111827;
-    }
-
-    .subtitle {
-        margin-top: 8px;
-        color: #6b7280;
-    }
-
-    .users-card {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
-        overflow: hidden;
-    }
-
-    .card-header {
-        padding: 22px 25px;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    .card-header h2 {
-        margin: 0;
-        font-size: 18px;
-        color: #111827;
-    }
-
-    .card-header p {
-        margin: 5px 0 0;
-        color: #9ca3af;
-        font-size: 14px;
-    }
-
-    .table-wrapper {
-        overflow-x: auto;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        text-align: left;
-    }
-
-    th {
-        padding: 14px 20px;
-        background: #f9fafb;
-        color: #6b7280;
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 600;
-        white-space: nowrap;
-    }
-
-    td {
-        padding: 18px 20px;
-        border-top: 1px solid #f0f0f0;
-        font-size: 14px;
-        color: #374151;
-        vertical-align: middle;
-    }
-
-    tr:hover {
-        background: #fafafa;
-    }
-
-    .user-cell {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .avatar {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        background: #eff6ff;
-        color: #2563eb;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-    }
-
-    .admin-label {
-        display: block;
-        margin-top: 3px;
-        font-size: 11px;
-        color: #9ca3af;
-    }
-
-    .badge {
-        display: inline-flex;
-        padding: 5px 10px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .badge-approved {
-        background: #ecfdf5;
-        color: #047857;
-    }
-
-    .badge-pending {
-        background: #fffbeb;
-        color: #b45309;
-    }
-
-    .badge-admin {
-        background: #eff6ff;
-        color: #1d4ed8;
-    }
-
-    .access-full {
-        color: #047857;
-        font-weight: 600;
-    }
-
-    .access-limited {
-        color: #b45309;
-        font-weight: 600;
-    }
-
-    .muted {
-        color: #9ca3af;
-    }
-
-    .action-button {
-        border: none;
-        border-radius: 7px;
-        padding: 8px 12px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-
-    .approve {
-        background: #2563eb;
-        color: white;
-    }
-
-    .approve:hover {
-        background: #1d4ed8;
-    }
-
-    .revoke {
-        background: #f3f4f6;
-        color: #374151;
-    }
-
-    .revoke:hover {
-        background: #e5e7eb;
-    }
-
-    .delete-button {
-        margin-top: 6px;
-        border: none;
-        background: transparent;
-        color: #dc2626;
-        font-size: 12px;
-        cursor: pointer;
-    }
-
-    .delete-button:hover {
-        text-decoration: underline;
-    }
-
-    .protected {
-        color: #9ca3af;
-        font-size: 12px;
-    }
-
-    .empty {
-        text-align: center;
-        padding: 50px;
-        color: #9ca3af;
-    }
-
-    .message {
-        padding: 12px 16px;
-        margin-bottom: 20px;
-        background: #ecfdf5;
-        border: 1px solid #a7f3d0;
-        color: #047857;
-        border-radius: 8px;
-    }
-
-</style>
 
 {% endblock %}

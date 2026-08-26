@@ -1,98 +1,307 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Connexion</title>
 
-    <style>
-        body{
-            background:#f4f6f9;
-            font-family:Arial,sans-serif;
+{% extends "dashboard/base.html" %}
+
+{% block title %}Connexion — DataPilot{% endblock %}
+
+{% block content %}
+
+<style>
+
+    .auth-page {
+        min-height: calc(100vh - 72px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 430px;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 42px;
+        box-shadow:
+            0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .auth-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .auth-logo {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 18px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 12px;
+
+        background: #eff6ff;
+        color: #2563eb;
+
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+    .auth-title {
+        margin: 0;
+
+        font-size: 28px;
+        font-weight: 700;
+
+        letter-spacing: -0.6px;
+
+        color: #111827;
+    }
+
+    .auth-subtitle {
+        margin: 9px 0 0;
+
+        font-size: 14px;
+        line-height: 1.5;
+
+        color: #6b7280;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+
+        margin-bottom: 7px;
+
+        font-size: 13px;
+        font-weight: 600;
+
+        color: #374151;
+    }
+
+    .form-group input {
+        width: 100%;
+
+        padding: 12px 14px;
+
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+
+        background: #ffffff;
+
+        color: #111827;
+
+        font-family: inherit;
+        font-size: 14px;
+
+        outline: none;
+
+        transition:
+            border-color 0.15s ease,
+            box-shadow 0.15s ease;
+    }
+
+    .form-group input:focus {
+        border-color: #2563eb;
+
+        box-shadow:
+            0 0 0 3px rgba(37, 99, 235, 0.10);
+    }
+
+    .login-button {
+        width: 100%;
+
+        margin-top: 6px;
+
+        padding: 12px 16px;
+
+        border: none;
+        border-radius: 8px;
+
+        background: #2563eb;
+        color: #ffffff;
+
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+
+        cursor: pointer;
+
+        transition:
+            background 0.15s ease,
+            transform 0.1s ease;
+    }
+
+    .login-button:hover {
+        background: #1d4ed8;
+    }
+
+    .login-button:active {
+        transform: translateY(1px);
+    }
+
+    .form-error {
+        margin-bottom: 20px;
+
+        padding: 11px 13px;
+
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+
+        background: #fef2f2;
+        color: #b91c1c;
+
+        font-size: 13px;
+    }
+
+    .register-link {
+        margin-top: 26px;
+
+        padding-top: 22px;
+
+        border-top: 1px solid #f0f0f0;
+
+        text-align: center;
+
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .register-link a {
+        color: #2563eb;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .register-link a:hover {
+        text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+
+        .auth-page {
+            padding: 20px 10px;
         }
 
-        .login-box{
-            width:380px;
-            margin:80px auto;
-            background:white;
-            padding:30px;
-            border-radius:10px;
-            box-shadow:0 0 15px rgba(0,0,0,.15);
+        .auth-card {
+            padding: 30px 24px;
         }
 
-        h2{
-            text-align:center;
-            margin-bottom:25px;
-        }
+    }
 
-        input{
-            width:100%;
-            padding:12px;
-            margin-top:10px;
-            margin-bottom:20px;
-            border:1px solid #ccc;
-            border-radius:5px;
-            box-sizing:border-box;
-        }
+</style>
 
-        button{
-            width:100%;
-            padding:12px;
-            background:#0d6efd;
-            color:white;
-            border:none;
-            border-radius:5px;
-            cursor:pointer;
-        }
 
-        button:hover{
-            background:#0b5ed7;
-        }
+<div class="auth-page">
 
-        .register-link{
-            text-align:center;
-            margin-top:20px;
-        }
+    <div class="auth-card">
 
-        .register-link a{
-            color:#0d6efd;
-            text-decoration:none;
-        }
 
-        .register-link a:hover{
-            text-decoration:underline;
-        }
-    </style>
+        <!-- EN-TÊTE -->
 
-</head>
+        <div class="auth-header">
 
-<body>
+            <div class="auth-logo">
+                D
+            </div>
 
-<div class="login-box">
+            <h1 class="auth-title">
+                Bienvenue
+            </h1>
 
-    <h2>Connexion</h2>
+            <p class="auth-subtitle">
+                Connectez-vous à votre espace DataPilot.
+            </p>
 
-    <form method="post">
+        </div>
 
-        {% csrf_token %}
 
-        {{ form.username.label_tag }}
-        {{ form.username }}
+        <!-- ERREUR DE CONNEXION -->
 
-        {{ form.password.label_tag }}
-        {{ form.password }}
+        {% if form.errors %}
 
-        <button type="submit">
-            Se connecter
-        </button>
+            <div class="form-error">
+                Identifiant ou mot de passe incorrect.
+                Veuillez vérifier vos informations.
+            </div>
 
-    </form>
+        {% endif %}
 
-    <div class="register-link">
-        Pas encore de compte ?
-        <a href="{% url 'register' %}">Créer un compte</a>
+
+        <!-- FORMULAIRE -->
+
+        <form method="post">
+
+            {% csrf_token %}
+
+
+            <div class="form-group">
+
+                <label for="id_username">
+                    Nom d'utilisateur
+                </label>
+
+                <input
+                    type="text"
+                    name="username"
+                    id="id_username"
+                    autocomplete="username"
+                    required
+                    autofocus
+                    placeholder="Votre nom d'utilisateur"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="id_password">
+                    Mot de passe
+                </label>
+
+                <input
+                    type="password"
+                    name="password"
+                    id="id_password"
+                    autocomplete="current-password"
+                    required
+                    placeholder="Votre mot de passe"
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="login-button"
+            >
+                Se connecter
+            </button>
+
+        </form>
+
+
+        <!-- INSCRIPTION -->
+
+        <div class="register-link">
+
+            Pas encore de compte ?
+
+            <a href="{% url 'register' %}">
+                Créer un compte
+            </a>
+
+        </div>
+
+
     </div>
 
 </div>
 
-</body>
-</html>
+{% endblock %}
