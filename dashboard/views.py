@@ -40,7 +40,7 @@ from dashboard.services import (
     execute_ai_sql,
 )
 
-
+from django.db.models import Q
 # ============================================================
 # LANDING PAGE
 # ============================================================
@@ -1387,18 +1387,27 @@ def activite_create(request):
 @approved_required
 def activite_list(request):
 
+    search = request.GET.get("search", "").strip()
+
     activites = (
         ActiviteCommerciale.objects
         .all()
+        .order_by("-annee", "-mois", "ville")
     )
 
+    if search:
+
+        activites = activites.filter(
+            Q(ville__icontains=search)
+            | Q(code_dept__icontains=search)
+        )
 
     return render(
         request,
         "dashboard/activite_list.html",
         {
-            "activites":
-                activites
+            "activites": activites,
+            "search": search
         }
     )
 
