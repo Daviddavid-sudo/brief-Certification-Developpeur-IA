@@ -1,90 +1,768 @@
 {% extends "dashboard/base.html" %}
 
+{% block title %}Activités commerciales — DataPilot{% endblock %}
 
 {% block content %}
 
-<h1>Gestion des activités commerciales</h1>
+<style>
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+.activities-page {
+    width: 100%;
+}
 
 
-<a href="{% url 'activite_create' %}">
-    ➕ Ajouter une activité commerciale
+/* =========================================================
+   HEADER
+========================================================= */
+
+.activities-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 25px;
+    margin-bottom: 28px;
+}
+
+.activities-title {
+    margin: 0;
+    color: #111827;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+}
+
+.activities-subtitle {
+    margin: 6px 0 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   ADD BUTTON
+========================================================= */
+
+.add-activity-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 10px 15px;
+
+    background: #2563eb;
+    color: white;
+
+    border: 1px solid #2563eb;
+    border-radius: 8px;
+
+    text-decoration: none;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.add-activity-btn:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 3px 8px rgba(37, 99, 235, 0.18);
+}
+
+
+/* =========================================================
+   KPI
+========================================================= */
+
+.activities-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+
+    margin-bottom: 22px;
+}
+
+.summary-card {
+    padding: 18px 20px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+.summary-label {
+    margin: 0 0 7px;
+
+    color: #6b7280;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.summary-value {
+    margin: 0;
+
+    color: #111827;
+
+    font-size: 23px;
+    font-weight: 700;
+}
+
+.summary-info {
+    margin: 4px 0 0;
+
+    color: #9ca3af;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   TABLE CARD
+========================================================= */
+
+.activities-card {
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+
+/* =========================================================
+   TABLE HEADER
+========================================================= */
+
+.activities-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 17px 20px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.activities-card-title {
+    margin: 0;
+
+    color: #1f2937;
+
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.activities-card-description {
+    margin: 4px 0 0;
+
+    color: #9ca3af;
+
+    font-size: 12px;
+}
+
+.activities-count {
+    padding: 5px 9px;
+
+    background: #f3f4f6;
+
+    border-radius: 6px;
+
+    color: #6b7280;
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.activities-table-wrapper {
+    overflow-x: auto;
+}
+
+.activities-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    font-size: 13px;
+}
+
+.activities-table thead {
+    background: #f8fafc;
+}
+
+.activities-table th {
+    padding: 12px 20px;
+
+    color: #6b7280;
+
+    font-size: 10px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+
+    text-align: left;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    white-space: nowrap;
+}
+
+.activities-table td {
+    padding: 14px 20px;
+
+    color: #374151;
+
+    border-bottom: 1px solid #f1f5f9;
+
+    vertical-align: middle;
+}
+
+.activities-table tbody tr {
+    transition:
+        background 0.12s ease;
+}
+
+.activities-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.activities-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+/* =========================================================
+   DEPARTMENT
+========================================================= */
+
+.department-badge {
+    display: inline-flex;
+    align-items: center;
+
+    min-width: 34px;
+
+    justify-content: center;
+
+    padding: 5px 8px;
+
+    background: #eff6ff;
+
+    border: 1px solid #dbeafe;
+
+    border-radius: 6px;
+
+    color: #2563eb;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   CITY
+========================================================= */
+
+.city-name {
+    color: #111827;
+
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   CA
+========================================================= */
+
+.ca-value {
+    color: #111827;
+
+    font-weight: 650;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   PERIOD
+========================================================= */
+
+.period-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 5px 8px;
+
+    background: #f9fafb;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 6px;
+
+    color: #6b7280;
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.actions {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 32px;
+    height: 32px;
+
+    border-radius: 7px;
+
+    text-decoration: none;
+
+    font-size: 14px;
+
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.action-edit {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.action-edit:hover {
+    background: #dbeafe;
+}
+
+.action-delete {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.action-delete:hover {
+    background: #fee2e2;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    min-height: 300px;
+
+    padding: 40px;
+
+    text-align: center;
+}
+
+.empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 48px;
+    height: 48px;
+
+    margin-bottom: 14px;
+
+    background: #f3f4f6;
+
+    border-radius: 10px;
+
+    color: #9ca3af;
+
+    font-size: 20px;
+}
+
+.empty-title {
+    margin: 0 0 5px;
+
+    color: #374151;
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.empty-text {
+    max-width: 350px;
+
+    margin: 0;
+
+    color: #9ca3af;
+
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .activities-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .activities-header {
+        flex-direction: column;
+    }
+
+    .add-activity-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+}
+
+@media (max-width: 600px) {
+
+    .activities-title {
+        font-size: 24px;
+    }
+
+    .activities-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .activities-table th,
+    .activities-table td {
+        padding: 12px;
+    }
+
+}
+
+</style>
+
+<div class="activities-page">
+
+<!-- =====================================================
+     HEADER
+====================================================== -->
+
+<header class="activities-header">
+
+```
+<div>
+
+    <h1 class="activities-title">
+        Gestion des activités commerciales
+    </h1>
+
+    <p class="activities-subtitle">
+        Consultez et gérez les données commerciales
+        enregistrées dans DataPilot.
+    </p>
+
+</div>
+
+
+<a
+    href="{% url 'activite_create' %}"
+    class="add-activity-btn"
+>
+
+    <span>＋</span>
+
+    Ajouter une activité
+
 </a>
 
 
-<br><br>
+</header>
+
+<!-- =====================================================
+     SUMMARY
+====================================================== -->
+
+<section class="activities-summary">
+
+<div class="summary-card">
+
+    <p class="summary-label">
+        Activités
+    </p>
+
+    <p class="summary-value">
+        {{ activites|length }}
+    </p>
+
+    <p class="summary-info">
+        Enregistrements disponibles
+    </p>
+
+</div>
 
 
-<table border="1" cellpadding="8">
+<div class="summary-card">
 
-<tr>
-    <th>Département</th>
-    <th>Ville</th>
-    <th>CA (€)</th>
-    <th>Mois</th>
-    <th>Année</th>
-    <th>Actions</th>
-</tr>
+    <p class="summary-label">
+        Données
+    </p>
 
+    <p class="summary-value">
+        2024
+    </p>
 
-{% for a in activites %}
+    <p class="summary-info">
+        Année commerciale
+    </p>
 
-<tr>
-
-<td>
-    {{ a.code_dept }}
-</td>
+</div>
 
 
-<td>
-    {{ a.ville }}
-</td>
+<div class="summary-card">
+
+    <p class="summary-label">
+        Zone
+    </p>
+
+    <p class="summary-value">
+        France
+    </p>
+
+    <p class="summary-info">
+        Données départementales
+    </p>
+
+</div>
+
+</section>
+
+<!-- =====================================================
+     TABLE CARD
+====================================================== -->
+
+<section class="activities-card">
 
 
-<td>
-    {{ a.ca_tot }} €
-</td>
+<div class="activities-card-header">
+
+    <div>
+
+        <h2 class="activities-card-title">
+            Activités enregistrées
+        </h2>
+
+        <p class="activities-card-description">
+            Liste des activités commerciales disponibles.
+        </p>
+
+    </div>
 
 
-<td>
-    {{ a.mois }}
-</td>
+    <span class="activities-count">
+
+        {{ activites|length }} activité{{ activites|length|pluralize }}
+
+    </span>
+
+</div>
 
 
-<td>
-    {{ a.annee }}
-</td>
+<!-- =================================================
+     TABLE
+================================================== -->
+
+{% if activites %}
+
+    <div class="activities-table-wrapper">
+
+        <table class="activities-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Département
+                    </th>
+
+                    <th>
+                        Ville
+                    </th>
+
+                    <th>
+                        Chiffre d'affaires
+                    </th>
+
+                    <th>
+                        Mois
+                    </th>
+
+                    <th>
+                        Année
+                    </th>
+
+                    <th>
+                        Actions
+                    </th>
+
+                </tr>
+
+            </thead>
 
 
-<td>
+            <tbody>
 
-<a href="{% url 'activite_update' a.id %}">
-    ✏️ Modifier
-</a>
+                {% for a in activites %}
 
+                    <tr>
 
-<a href="{% url 'activite_delete' a.id %}">
-    🗑️ Supprimer
-</a>
+                        <td>
 
+                            <span class="department-badge">
+                                {{ a.code_dept }}
+                            </span>
 
-</td>
-
-</tr>
+                        </td>
 
 
-{% empty %}
+                        <td>
 
-<tr>
-    <td colspan="6">
-        Aucune activité commerciale disponible
-    </td>
-</tr>
+                            <span class="city-name">
+                                {{ a.ville }}
+                            </span>
 
-
-{% endfor %}
+                        </td>
 
 
-</table>
+                        <td>
 
+                            <span class="ca-value">
+                                {{ a.ca_tot }} €
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            <span class="period-badge">
+                                Mois {{ a.mois }}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            <span class="period-badge">
+                                {{ a.annee }}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="actions">
+
+                                <a
+                                    href="{% url 'activite_update' a.id %}"
+                                    class="action-btn action-edit"
+                                    title="Modifier"
+                                >
+                                    ✎
+                                </a>
+
+
+                                <a
+                                    href="{% url 'activite_delete' a.id %}"
+                                    class="action-btn action-delete"
+                                    title="Supprimer"
+                                >
+                                    ×
+                                </a>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+{% else %}
+
+
+    <!-- =================================================
+         EMPTY STATE
+    ================================================== -->
+
+    <div class="empty-state">
+
+        <div class="empty-icon">
+            +
+        </div>
+
+        <h3 class="empty-title">
+            Aucune activité commerciale
+        </h3>
+
+        <p class="empty-text">
+            Aucune activité n'est actuellement enregistrée.
+            Commencez par ajouter une nouvelle activité commerciale.
+        </p>
+
+    </div>
+
+
+{% endif %}
+
+
+</section>
+
+</div>
 
 {% endblock %}
