@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.contrib.auth.views import LogoutView
 
 from dashboard.views import (
+    landing_page,
     carte_ventes_view,
     consultation_meteo,
     carte_population_view,
@@ -21,6 +22,16 @@ from dashboard.views import (
 urlpatterns = [
 
     # ============================================================
+    # LANDING PAGE
+    # ============================================================
+
+    path(
+        "",
+        landing_page,
+        name="landing"
+    ),
+
+    # ============================================================
     # AUTHENTIFICATION
     # ============================================================
 
@@ -32,7 +43,7 @@ urlpatterns = [
 
     path(
         "logout/",
-        LogoutView.as_view(next_page="login"),
+        LogoutView.as_view(next_page="landing"),
         name="logout"
     ),
 
@@ -41,7 +52,6 @@ urlpatterns = [
         register,
         name="register"
     ),
-
 
     # ============================================================
     # ADMIN DJANGO
@@ -52,7 +62,6 @@ urlpatterns = [
         admin.site.urls
     ),
 
-
     # ============================================================
     # PROMETHEUS
     # ============================================================
@@ -62,13 +71,12 @@ urlpatterns = [
         include("django_prometheus.urls")
     ),
 
-
     # ============================================================
-    # DASHBOARD
+    # DASHBOARD COMMERCIAL
     # ============================================================
 
     path(
-        "",
+        "carte/",
         carte_ventes_view,
         name="home"
     ),
@@ -79,22 +87,18 @@ urlpatterns = [
         name="carte_ventes"
     ),
 
-
     # ============================================================
     # METEO
-    # Accessible aux utilisateurs connectés
     # ============================================================
 
     path(
-    'meteo_calendrier/',
-    consultation_meteo,
-    name='meteo_calendrier'
-),
-
+        "meteo_calendrier/",
+        consultation_meteo,
+        name="meteo_calendrier"
+    ),
 
     # ============================================================
     # POPULATION
-    # Admin uniquement via @admin_required
     # ============================================================
 
     path(
@@ -103,10 +107,8 @@ urlpatterns = [
         name="population"
     ),
 
-
     # ============================================================
     # ASSISTANT IA
-    # Admin uniquement via @admin_required
     # ============================================================
 
     path(
@@ -114,7 +116,6 @@ urlpatterns = [
         ai_assistant_view,
         name="ai_assistant"
     ),
-
 
     # ============================================================
     # API
@@ -124,7 +125,6 @@ urlpatterns = [
         "api/v1/",
         include("api.urls")
     ),
-
 
     # ============================================================
     # HEALTH CHECK
@@ -136,10 +136,8 @@ urlpatterns = [
         name="health_check"
     ),
 
-
     # ============================================================
     # ARTICLES
-    # Admin uniquement via @admin_required
     # ============================================================
 
     path(
@@ -148,10 +146,8 @@ urlpatterns = [
         name="articles_list"
     ),
 
-
     # ============================================================
     # GESTION ACTIVITE COMMERCIALE
-    # Admin uniquement via @admin_required
     # ============================================================
 
     path(

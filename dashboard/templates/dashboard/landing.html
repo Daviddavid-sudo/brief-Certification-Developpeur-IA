@@ -1,0 +1,124 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Dashboard IA</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f7fa;
+            color: #1f2937;
+        }
+
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        h1 {
+            font-size: 52px;
+            margin: 0 0 20px;
+        }
+
+        p {
+            font-size: 20px;
+            color: #6b7280;
+            line-height: 1.6;
+            margin: 0 0 35px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .login {
+            background: #2563eb;
+            color: white;
+        }
+
+        .login:hover {
+            background: #1d4ed8;
+        }
+
+        .register {
+            background: white;
+            color: #2563eb;
+            border: 1px solid #2563eb;
+        }
+
+        .register:hover {
+            background: #eff6ff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="hero">
+
+        <div class="container">
+
+            <h1>Dashboard IA</h1>
+
+            <p>
+                Analysez vos données commerciales,
+                consultez la population et la météo,
+                et utilisez notre assistant intelligent
+                pour faciliter votre prise de décision.
+            </p>
+
+            <div class="buttons">
+
+                <!-- CONNEXION -->
+                <a href="/login/" class="btn login">
+                    Se connecter
+                </a>
+
+                <!-- INSCRIPTION -->
+                <a
+                    href="http://localhost:8000/register/"
+                    class="btn register"
+                >
+                    Créer un compte
+                </a>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</body>
+</html>
+

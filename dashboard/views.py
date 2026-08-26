@@ -36,12 +36,44 @@ from dashboard.services import ask_llm_about_db, execute_ai_sql
 
 
 # ============================================================
+# LANDING PAGE
+# ============================================================
+
+def landing_page(request):
+    return render(request, "dashboard/landing.html")
+
+
+# ============================================================
 # AUTHENTIFICATION
 # ============================================================
 
 class CustomLoginView(LoginView):
     template_name = "dashboard/login.html"
     redirect_authenticated_user = True
+
+
+
+    def get_success_url(self):
+        """
+        Redirection après connexion :
+
+        - Administrateur -> dashboard commercial
+        - Utilisateur approuvé -> dashboard commercial
+        - Utilisateur non approuvé -> météo
+        """
+
+        user = self.request.user
+
+        # Administrateur : accès complet
+        if user.is_staff:
+            return "/carte/"
+
+        # Utilisateur approuvé
+        if hasattr(user, "profile") and user.profile.is_approved:
+            return "/carte/"
+
+        # Nouvel utilisateur non approuvé
+        return "/meteo_calendrier/"
 
 
 def is_admin(user):
@@ -62,11 +94,9 @@ def approved_required(view_func):
         if not request.user.is_authenticated:
             return redirect("/login/")
 
-        # Administrateur = accès complet
         if request.user.is_staff:
             return view_func(request, *args, **kwargs)
 
-        # Vérification du profil
         if not hasattr(request.user, "profile"):
             messages.warning(
                 request,
@@ -74,7 +104,6 @@ def approved_required(view_func):
             )
             return redirect("meteo_calendrier")
 
-        # Compte non approuvé
         if not request.user.profile.is_approved:
             messages.warning(
                 request,
@@ -349,7 +378,6 @@ def carte_ventes_view(request):
 
 # ============================================================
 # METEO
-# ACCESSIBLE AUX UTILISATEURS CONNECTÉS
 # ============================================================
 
 @login_required
