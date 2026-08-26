@@ -65,20 +65,7 @@ DB_KEYWORDS = [
 ]
 
 
-def is_database_question(question: str) -> bool:
-    """
-    Vérifie si la question concerne les données métier.
-    """
-
-    if not question:
-        return False
-
-    q = question.lower().strip()
-
-    if q in INVALID_INPUTS:
-        return False
-
-    return any(keyword in q for keyword in DB_KEYWORDS)
+def is_database_question(question: str) -> bool: """ Vérifie si la question concerne les données métier et bloque les commandes SQL dangereuses. """ if not question: return False q = question.lower().strip() # Questions invalides if q in INVALID_INPUTS: return False # Bloquer les commandes SQL dangereuses forbidden_sql = [ "drop", "delete", "update", "insert", "alter", "truncate", "create", "grant", "revoke", ] for command in forbidden_sql: if re.search(rf"\b{command}\b", q): return False # Vérifier les mots-clés métier return any( keyword in q for keyword in DB_KEYWORDS )
 
 
 # =========================================================
