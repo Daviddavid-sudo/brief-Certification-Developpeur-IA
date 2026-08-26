@@ -1,4 +1,3 @@
-```python
 from django.urls import reverse
 from django.contrib.auth.models import User
 from rest_framework.test import APITestCase
@@ -56,4 +55,3 @@ class SecurityAPITests(APITestCase):
             response.status_code,
             status.HTTP_200_OK
         )
-```
