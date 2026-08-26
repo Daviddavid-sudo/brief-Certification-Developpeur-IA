@@ -1,4 +1,3 @@
-
 {% extends 'dashboard/base.html' %}
 
 {% block title %}Ventes — DataPilot{% endblock %}
@@ -7,427 +6,534 @@
 
 <style>
 
-    /* =========================================================
-       PAGE HEADER
-    ========================================================= */
+/* =========================================================
+   PAGE
+========================================================= */
 
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        gap: 30px;
+.sales-page {
+    width: 100%;
+}
 
-        margin-bottom: 30px;
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.sales-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 30px;
+    margin-bottom: 28px;
+}
+
+.sales-title {
+    margin: 0;
+    color: #111827;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+}
+
+.sales-subtitle {
+    margin: 6px 0 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   PERIOD BADGE
+========================================================= */
+
+.period-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 7px 11px;
+
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+    border-radius: 7px;
+
+    color: #2563eb;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.period-dot {
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #2563eb;
+}
+
+
+/* =========================================================
+   KPI
+========================================================= */
+
+.sales-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+
+    margin-bottom: 22px;
+}
+
+.sales-kpi {
+    padding: 20px 22px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+
+    transition:
+        border-color 0.15s ease,
+        transform 0.15s ease;
+}
+
+.sales-kpi:hover {
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+}
+
+.sales-kpi-label {
+    margin: 0 0 8px;
+
+    color: #6b7280;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.sales-kpi-value {
+    margin: 0;
+
+    color: #111827;
+
+    font-size: 24px;
+    font-weight: 700;
+
+    letter-spacing: -0.4px;
+}
+
+.sales-kpi-info {
+    margin: 5px 0 0;
+
+    color: #9ca3af;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   FILTER
+========================================================= */
+
+.sales-filter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 18px;
+    padding: 15px 18px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+.filter-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.filter-title {
+    color: #374151;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.filter-text {
+    color: #9ca3af;
+
+    font-size: 12px;
+}
+
+.month-form {
+    margin: 0;
+}
+
+.month-select {
+    min-width: 150px;
+
+    padding: 9px 32px 9px 12px;
+
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+
+    background: #ffffff;
+
+    color: #374151;
+
+    font-family: inherit;
+    font-size: 13px;
+
+    cursor: pointer;
+
+    outline: none;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.month-select:hover {
+    border-color: #9ca3af;
+}
+
+.month-select:focus {
+    border-color: #2563eb;
+
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.10);
+}
+
+
+/* =========================================================
+   MAP CARD
+========================================================= */
+
+.sales-map-card {
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+.sales-map-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 17px 20px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.sales-map-title {
+    margin: 0;
+
+    color: #1f2937;
+
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.sales-map-description {
+    margin: 4px 0 0;
+
+    color: #9ca3af;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   MAP
+========================================================= */
+
+.sales-map-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    min-height: 520px;
+
+    padding: 25px;
+
+    background: #f9fafb;
+}
+
+.sales-map-image {
+    display: block;
+
+    width: 100%;
+    max-width: 850px;
+
+    height: auto;
+
+    border-radius: 6px;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.sales-empty {
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    min-height: 420px;
+
+    text-align: center;
+}
+
+.sales-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 46px;
+    height: 46px;
+
+    margin-bottom: 14px;
+
+    border-radius: 10px;
+
+    background: #f3f4f6;
+
+    color: #9ca3af;
+
+    font-size: 20px;
+}
+
+.sales-empty-title {
+    margin: 0 0 5px;
+
+    color: #374151;
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sales-empty-text {
+    max-width: 350px;
+
+    margin: 0;
+
+    color: #9ca3af;
+
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.sales-map-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 11px 20px;
+
+    border-top: 1px solid #e5e7eb;
+
+    color: #9ca3af;
+
+    font-size: 11px;
+}
+
+.footer-source {
+    color: #9ca3af;
+}
+
+.footer-period {
+    color: #6b7280;
+    font-weight: 500;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .sales-kpis {
+        grid-template-columns: 1fr;
     }
 
-    .page-title {
-        margin: 0;
-
-        font-size: 30px;
-        font-weight: 700;
-
-        letter-spacing: -0.7px;
-
-        color: #0f172a;
+    .sales-header {
+        flex-direction: column;
     }
 
-    .page-subtitle {
-        margin: 8px 0 0;
-
-        font-size: 14px;
-
-        color: #64748b;
+    .sales-filter {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
-
-    /* =========================================================
-       KPI
-    ========================================================= */
-
-    .kpi-grid {
-        display: grid;
-
-        grid-template-columns:
-            repeat(3, 1fr);
-
-        gap: 16px;
-
-        margin-bottom: 24px;
-    }
-
-    .kpi-card {
-        background: #ffffff;
-
-        border: 1px solid #e2e8f0;
-
-        border-radius: 10px;
-
-        padding: 20px 22px;
-    }
-
-    .kpi-label {
-        margin: 0 0 8px;
-
-        color: #64748b;
-
-        font-size: 12px;
-        font-weight: 600;
-
-        text-transform: uppercase;
-
-        letter-spacing: 0.5px;
-    }
-
-    .kpi-value {
-        margin: 0;
-
-        color: #0f172a;
-
-        font-size: 24px;
-        font-weight: 700;
-    }
-
-    .kpi-description {
-        margin: 5px 0 0;
-
-        color: #94a3b8;
-
-        font-size: 12px;
-    }
-
-
-    /* =========================================================
-       FILTER
-    ========================================================= */
-
-    .filter-card {
-        display: flex;
-
-        align-items: center;
-        justify-content: space-between;
-
-        gap: 20px;
-
-        padding: 16px 18px;
-
-        margin-bottom: 20px;
-
-        background: #ffffff;
-
-        border: 1px solid #e2e8f0;
-
-        border-radius: 10px;
-    }
-
-    .filter-label {
-        display: block;
-
-        margin-bottom: 4px;
-
-        color: #0f172a;
-
-        font-size: 13px;
-        font-weight: 600;
-    }
-
-    .filter-description {
-        margin: 0;
-
-        color: #94a3b8;
-
-        font-size: 12px;
-    }
-
+    .month-form,
     .month-select {
-        min-width: 150px;
-
-        padding: 9px 35px 9px 12px;
-
-        border: 1px solid #cbd5e1;
-
-        border-radius: 7px;
-
-        background: #ffffff;
-
-        color: #334155;
-
-        font-size: 13px;
-
-        cursor: pointer;
-
-        outline: none;
+        width: 100%;
     }
 
-    .month-select:focus {
-        border-color: #2563eb;
+}
 
-        box-shadow:
-            0 0 0 3px rgba(37, 99, 235, 0.1);
+
+@media (max-width: 600px) {
+
+    .sales-title {
+        font-size: 24px;
     }
 
-
-    /* =========================================================
-       MAP
-    ========================================================= */
-
-    .map-card {
-        overflow: hidden;
-
-        background: #ffffff;
-
-        border: 1px solid #e2e8f0;
-
-        border-radius: 10px;
+    .sales-map-content {
+        min-height: 350px;
+        padding: 10px;
     }
 
-    .map-header {
-        display: flex;
-
-        align-items: center;
-        justify-content: space-between;
-
-        padding: 18px 22px;
-
-        border-bottom: 1px solid #e2e8f0;
+    .sales-map-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
     }
 
-    .map-title {
-        margin: 0;
-
-        color: #0f172a;
-
-        font-size: 15px;
-        font-weight: 650;
+    .sales-map-footer {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
     }
 
-    .map-period {
-        padding: 5px 9px;
-
-        border-radius: 6px;
-
-        background: #eff6ff;
-
-        color: #2563eb;
-
-        font-size: 11px;
-        font-weight: 600;
-    }
-
-    .map-content {
-        padding: 25px;
-
-        text-align: center;
-
-        background: #fafbfc;
-    }
-
-    .map-image {
-        display: block;
-
-        max-width: 100%;
-
-        height: auto;
-
-        margin: 0 auto;
-
-        border-radius: 6px;
-    }
-
-    .map-footer {
-        padding: 12px 22px;
-
-        border-top: 1px solid #e2e8f0;
-
-        color: #94a3b8;
-
-        font-size: 11px;
-
-        text-align: left;
-    }
-
-
-    /* =========================================================
-       EMPTY STATE
-    ========================================================= */
-
-    .empty-state {
-        padding: 70px 20px;
-
-        text-align: center;
-    }
-
-    .empty-icon {
-        width: 44px;
-        height: 44px;
-
-        display: flex;
-
-        align-items: center;
-        justify-content: center;
-
-        margin: 0 auto 15px;
-
-        border-radius: 10px;
-
-        background: #f1f5f9;
-
-        color: #64748b;
-
-        font-size: 20px;
-    }
-
-    .empty-state h3 {
-        margin: 0 0 6px;
-
-        color: #334155;
-
-        font-size: 15px;
-    }
-
-    .empty-state p {
-        margin: 0;
-
-        color: #94a3b8;
-
-        font-size: 13px;
-    }
-
-
-    /* =========================================================
-       RESPONSIVE
-    ========================================================= */
-
-    @media (max-width: 800px) {
-
-        .page-header {
-            align-items: flex-start;
-
-            flex-direction: column;
-        }
-
-        .kpi-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .filter-card {
-            align-items: flex-start;
-
-            flex-direction: column;
-        }
-
-        .month-select {
-            width: 100%;
-        }
-
-        .map-header {
-            align-items: flex-start;
-
-            flex-direction: column;
-
-            gap: 10px;
-        }
-
-    }
+}
 
 </style>
 
+<div class="sales-page">
 
-<!-- =========================================================
+
+<!-- =====================================================
      HEADER
-========================================================== -->
+====================================================== -->
 
-<div class="page-header">
+<header class="sales-header">
 
     <div>
 
-        <h1 class="page-title">
+        <h1 class="sales-title">
             Analyse des ventes
         </h1>
 
-        <p class="page-subtitle">
+        <p class="sales-subtitle">
             Visualisez la répartition du chiffre d'affaires
-            par département.
+            à l'échelle départementale.
         </p>
 
     </div>
 
-</div>
+
+    <div class="period-badge">
+
+        <span class="period-dot"></span>
+
+        Données 2024
+
+    </div>
+
+</header>
 
 
-<!-- =========================================================
+<!-- =====================================================
      KPI
-========================================================== -->
+====================================================== -->
 
-<div class="kpi-grid">
+<section class="sales-kpis">
 
-    <div class="kpi-card">
 
-        <p class="kpi-label">
-            Période analysée
+    <div class="sales-kpi">
+
+        <p class="sales-kpi-label">
+            Période
         </p>
 
-        <p class="kpi-value">
+        <p class="sales-kpi-value">
             {{ selected_month }}
         </p>
 
-        <p class="kpi-description">
+        <p class="sales-kpi-info">
             Mois sélectionné
         </p>
 
     </div>
 
 
-    <div class="kpi-card">
+    <div class="sales-kpi">
 
-        <p class="kpi-label">
+        <p class="sales-kpi-label">
             Année
         </p>
 
-        <p class="kpi-value">
+        <p class="sales-kpi-value">
             2024
         </p>
 
-        <p class="kpi-description">
+        <p class="sales-kpi-info">
             Données commerciales
         </p>
 
     </div>
 
 
-    <div class="kpi-card">
+    <div class="sales-kpi">
 
-        <p class="kpi-label">
-            Analyse
+        <p class="sales-kpi-label">
+            Zone
         </p>
 
-        <p class="kpi-value">
+        <p class="sales-kpi-value">
             France
         </p>
 
-        <p class="kpi-description">
-            Répartition départementale
+        <p class="sales-kpi-info">
+            Analyse départementale
         </p>
 
     </div>
 
-</div>
+
+</section>
 
 
-<!-- =========================================================
+<!-- =====================================================
      FILTER
-========================================================== -->
+====================================================== -->
 
-<div class="filter-card">
+<section class="sales-filter">
 
-    <div>
 
-        <span class="filter-label">
-            Période
+    <div class="filter-info">
+
+        <span class="filter-title">
+            Période d'analyse
         </span>
 
-        <p class="filter-description">
-            Sélectionnez le mois à analyser.
-        </p>
+        <span class="filter-text">
+            Sélectionnez le mois à afficher sur la carte.
+        </span>
 
     </div>
 
@@ -435,6 +541,7 @@
     <form
         method="get"
         id="filter-form"
+        class="month-form"
     >
 
         <select
@@ -463,52 +570,65 @@
 
     </form>
 
-</div>
+
+</section>
 
 
-<!-- =========================================================
+<!-- =====================================================
      MAP
-========================================================== -->
+====================================================== -->
 
-<div class="map-card">
+<section class="sales-map-card">
 
 
-    <div class="map-header">
+    <div class="sales-map-header">
 
-        <h2 class="map-title">
-            Chiffre d'affaires par département
-        </h2>
+        <div>
 
-        <span class="map-period">
-            Mois {{ selected_month }} · 2024
+            <h2 class="sales-map-title">
+                Chiffre d'affaires par département
+            </h2>
+
+            <p class="sales-map-description">
+                Intensité des ventes sur le territoire français.
+            </p>
+
+        </div>
+
+
+        <span class="period-badge">
+
+            {{ selected_month }} · 2024
+
         </span>
 
     </div>
 
 
-    <div class="map-content">
+    <div class="sales-map-content">
+
 
         {% if data_map %}
 
             <img
                 src="data:image/png;base64,{{ data_map }}"
                 alt="Carte du chiffre d'affaires par département"
-                class="map-image"
+                class="sales-map-image"
             >
 
         {% else %}
 
-            <div class="empty-state">
+            <div class="sales-empty">
 
-                <div class="empty-icon">
+                <div class="sales-empty-icon">
                     —
                 </div>
 
-                <h3>
+                <h3 class="sales-empty-title">
                     Aucune donnée disponible
                 </h3>
 
-                <p>
+                <p class="sales-empty-text">
                     Aucune donnée commerciale n'est disponible
                     pour le mois sélectionné.
                 </p>
@@ -517,22 +637,30 @@
 
         {% endif %}
 
+
     </div>
 
 
     {% if data_map %}
 
-        <div class="map-footer">
+        <footer class="sales-map-footer">
 
-            Données affichées pour le mois {{ selected_month }}
-            de l'année 2024.
+            <span class="footer-source">
+                Données commerciales
+            </span>
 
-        </div>
+            <span class="footer-period">
+                Mois {{ selected_month }} · Année 2024
+            </span>
+
+        </footer>
 
     {% endif %}
 
+
+</section>
+
+
 </div>
 
-
 {% endblock %}
-

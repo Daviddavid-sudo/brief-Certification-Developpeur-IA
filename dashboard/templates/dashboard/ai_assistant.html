@@ -1,55 +1,971 @@
 {% extends 'dashboard/base.html' %}
 
-{% block content %}
-<div style="max-width: 800px; margin: 0 auto; padding: 20px;">
-    <h1>Assistant IA - Analyse des Ventes</h1>
-    <p style="color: #666;">Posez des questions sur les tendances de population ou le CA par département.</p>
-    <hr>
+{% block title %}Assistant IA — DataPilot{% endblock %}
 
-    <div id="chat-container" style="background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 20px; min-height: 300px; display: flex; flex-direction: column;">
-        <div id="response-area" style="flex-grow: 1; margin-bottom: 20px; font-size: 1.1em; line-height: 1.6;">
-            <p style="color: #999; font-style: italic;">La réponse de l'IA s'affichera ici...</p>
+{% block content %}
+
+<style>
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+.ai-page {
+    max-width: 1050px;
+    margin: 0 auto;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.ai-header {
+    margin-bottom: 26px;
+}
+
+.ai-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ai-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: #eff6ff;
+    color: #2563eb;
+
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.ai-title {
+    margin: 0;
+
+    color: #111827;
+
+    font-size: 28px;
+    font-weight: 700;
+
+    letter-spacing: -0.5px;
+}
+
+.ai-subtitle {
+    margin: 8px 0 0 54px;
+
+    color: #6b7280;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   CHAT CARD
+========================================================= */
+
+.ai-card {
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 12px;
+}
+
+
+/* =========================================================
+   CHAT HEADER
+========================================================= */
+
+.ai-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 15px 20px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.ai-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    color: #374151;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.ai-status-dot {
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #22c55e;
+}
+
+.ai-status-text {
+    color: #9ca3af;
+
+    font-size: 11px;
+    font-weight: 400;
+}
+
+
+/* =========================================================
+   CHAT AREA
+========================================================= */
+
+.ai-chat {
+    min-height: 420px;
+
+    padding: 28px;
+
+    background: #f9fafb;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+
+/* =========================================================
+   WELCOME
+========================================================= */
+
+.ai-welcome {
+    max-width: 650px;
+
+    margin: auto;
+
+    text-align: center;
+}
+
+.ai-welcome-icon {
+    width: 54px;
+    height: 54px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 auto 16px;
+
+    border-radius: 14px;
+
+    background: #eff6ff;
+
+    color: #2563eb;
+
+    font-size: 23px;
+}
+
+.ai-welcome-title {
+    margin: 0 0 7px;
+
+    color: #1f2937;
+
+    font-size: 17px;
+    font-weight: 650;
+}
+
+.ai-welcome-text {
+    margin: 0;
+
+    color: #6b7280;
+
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   SUGGESTIONS
+========================================================= */
+
+.ai-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    gap: 8px;
+
+    margin-top: 22px;
+}
+
+.ai-suggestion {
+    padding: 8px 12px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 7px;
+
+    color: #4b5563;
+
+    font-family: inherit;
+
+    font-size: 12px;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.ai-suggestion:hover {
+    background: #eff6ff;
+
+    border-color: #bfdbfe;
+
+    color: #2563eb;
+}
+
+
+/* =========================================================
+   MESSAGES
+========================================================= */
+
+.ai-message {
+    max-width: 78%;
+
+    margin-bottom: 16px;
+
+    padding: 12px 15px;
+
+    border-radius: 10px;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+}
+
+.ai-message-user {
+    align-self: flex-end;
+
+    background: #2563eb;
+
+    color: #ffffff;
+
+    border-bottom-right-radius: 3px;
+}
+
+.ai-message-ai {
+    align-self: flex-start;
+
+    background: #ffffff;
+
+    color: #374151;
+
+    border: 1px solid #e5e7eb;
+
+    border-bottom-left-radius: 3px;
+}
+
+.ai-message-label {
+    display: block;
+
+    margin-bottom: 5px;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.05em;
+
+    opacity: 0.65;
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.ai-loading {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ai-loading span {
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #9ca3af;
+
+    animation: ai-pulse 1.2s infinite ease-in-out;
+}
+
+.ai-loading span:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.ai-loading span:nth-child(3) {
+    animation-delay: 0.30s;
+}
+
+@keyframes ai-pulse {
+
+    0%, 60%, 100% {
+        opacity: 0.3;
+        transform: translateY(0);
+    }
+
+    30% {
+        opacity: 1;
+        transform: translateY(-3px);
+    }
+
+}
+
+
+/* =========================================================
+   INPUT AREA
+========================================================= */
+
+.ai-input-area {
+    padding: 17px 20px;
+
+    background: #ffffff;
+
+    border-top: 1px solid #e5e7eb;
+}
+
+.ai-form {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+}
+
+.ai-input {
+    flex: 1;
+
+    min-width: 0;
+
+    padding: 11px 13px;
+
+    background: #ffffff;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: 8px;
+
+    color: #111827;
+
+    font-family: inherit;
+
+    font-size: 13px;
+
+    outline: none;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.ai-input::placeholder {
+    color: #9ca3af;
+}
+
+.ai-input:hover {
+    border-color: #9ca3af;
+}
+
+.ai-input:focus {
+    border-color: #2563eb;
+
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.10);
+}
+
+.ai-send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 88px;
+
+    padding: 11px 17px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #2563eb;
+
+    color: #ffffff;
+
+    font-family: inherit;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        transform 0.1s ease;
+}
+
+.ai-send:hover {
+    background: #1d4ed8;
+}
+
+.ai-send:active {
+    transform: translateY(1px);
+}
+
+.ai-send:disabled {
+    background: #93c5fd;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.ai-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-top: 10px;
+
+    color: #9ca3af;
+
+    font-size: 10px;
+}
+
+.ai-footer strong {
+    color: #6b7280;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 700px) {
+
+    .ai-title {
+        font-size: 24px;
+    }
+
+    .ai-subtitle {
+        margin-left: 0;
+    }
+
+    .ai-chat {
+        min-height: 380px;
+
+        padding: 18px;
+    }
+
+    .ai-message {
+        max-width: 90%;
+    }
+
+    .ai-form {
+        align-items: stretch;
+    }
+
+    .ai-send {
+        min-width: 75px;
+    }
+
+}
+
+</style>
+
+<div class="ai-page">
+
+
+<!-- =====================================================
+     HEADER
+====================================================== -->
+
+<header class="ai-header">
+
+    <div class="ai-title-row">
+
+        <div class="ai-icon">
+            ✦
         </div>
 
-        <form id="ai-form" style="display: flex; gap: 10px;">
+        <h1 class="ai-title">
+            Assistant IA
+        </h1>
+
+    </div>
+
+    <p class="ai-subtitle">
+        Interrogez vos données commerciales en langage naturel.
+    </p>
+
+</header>
+
+
+<!-- =====================================================
+     CHAT
+====================================================== -->
+
+<section class="ai-card">
+
+
+    <!-- HEADER -->
+
+    <div class="ai-card-header">
+
+        <div class="ai-status">
+
+            <span class="ai-status-dot"></span>
+
+            DataPilot AI
+
+            <span class="ai-status-text">
+                Assistant disponible
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- CHAT -->
+
+    <div
+        id="chat-container"
+        class="ai-chat"
+    >
+
+
+        <!-- MESSAGE D'ACCUEIL -->
+
+        <div
+            id="welcome-message"
+            class="ai-welcome"
+        >
+
+            <div class="ai-welcome-icon">
+                ✦
+            </div>
+
+            <h2 class="ai-welcome-title">
+                Que souhaitez-vous analyser ?
+            </h2>
+
+            <p class="ai-welcome-text">
+                Posez une question sur votre chiffre d'affaires,
+                vos départements ou vos données de population.
+            </p>
+
+
+            <!-- SUGGESTIONS -->
+
+            <div class="ai-suggestions">
+
+                <button
+                    type="button"
+                    class="ai-suggestion"
+                    onclick="useSuggestion(this)"
+                >
+                    Quel département a le plus gros CA ?
+                </button>
+
+                <button
+                    type="button"
+                    class="ai-suggestion"
+                    onclick="useSuggestion(this)"
+                >
+                    Quel est le département le plus peuplé ?
+                </button>
+
+                <button
+                    type="button"
+                    class="ai-suggestion"
+                    onclick="useSuggestion(this)"
+                >
+                    Quel est le CA total ?
+                </button>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- INPUT -->
+
+    <div class="ai-input-area">
+
+        <form
+            id="ai-form"
+            class="ai-form"
+        >
+
             {% csrf_token %}
-            <input type="text" id="user-message" name="message" placeholder="Ex: Quel est le département le plus peuplé ?" 
-                   style="flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 5px; outline: none;">
-            <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+
+            <input
+                type="text"
+                id="user-message"
+                name="message"
+                class="ai-input"
+                placeholder="Posez une question sur vos données..."
+                autocomplete="off"
+            >
+
+            <button
+                type="submit"
+                id="send-button"
+                class="ai-send"
+            >
                 Envoyer
             </button>
+
         </form>
+
+
+        <div class="ai-footer">
+
+            <span>
+                Interrogez les données disponibles dans DataPilot.
+            </span>
+
+            <span>
+                <strong>Entrée</strong> pour envoyer
+            </span>
+
+        </div>
+
     </div>
+
+
+</section>
+
 </div>
 
 <script>
-    document.getElementById('ai-form').onsubmit = function(e) {
-        e.preventDefault();
-        const messageInput = document.getElementById('user-message');
-        const responseArea = document.getElementById('response-area');
-        const message = messageInput.value;
 
-        if (!message) return;
+/* =========================================================
+   ELEMENTS
+========================================================= */
 
-        // Show loading state
-        responseArea.innerHTML = '<p style="color: #007bff;">L\'IA réfléchit...</p>';
-        
-        // AJAX Request
-        fetch('', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'message=' + encodeURIComponent(message)
+const form = document.getElementById("ai-form");
+
+const messageInput =
+    document.getElementById("user-message");
+
+const chatContainer =
+    document.getElementById("chat-container");
+
+const sendButton =
+    document.getElementById("send-button");
+
+
+/* =========================================================
+   SUGGESTION
+========================================================= */
+
+function useSuggestion(button) {
+
+    messageInput.value = button.innerText;
+
+    messageInput.focus();
+
+}
+
+
+/* =========================================================
+   AJOUT MESSAGE
+========================================================= */
+
+function addMessage(message, type) {
+
+    const messageElement =
+        document.createElement("div");
+
+    messageElement.className =
+        "ai-message " +
+        (
+            type === "user"
+                ? "ai-message-user"
+                : "ai-message-ai"
+        );
+
+    const label =
+        type === "user"
+            ? "Vous"
+            : "DataPilot AI";
+
+    messageElement.innerHTML =
+        `<span class="ai-message-label">
+            ${label}
+        </span>
+        ${message}`;
+
+    chatContainer.appendChild(
+        messageElement
+    );
+
+    chatContainer.scrollTop =
+        chatContainer.scrollHeight;
+
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+function addLoading() {
+
+    const loading =
+        document.createElement("div");
+
+    loading.id = "ai-loading";
+
+    loading.className =
+        "ai-message ai-message-ai";
+
+    loading.innerHTML = `
+        <span class="ai-message-label">
+            DataPilot AI
+        </span>
+
+        <div class="ai-loading">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    `;
+
+    chatContainer.appendChild(loading);
+
+    chatContainer.scrollTop =
+        chatContainer.scrollHeight;
+
+}
+
+
+/* =========================================================
+   FORM
+========================================================= */
+
+form.addEventListener(
+    "submit",
+    function(event) {
+
+        event.preventDefault();
+
+
+        const message =
+            messageInput.value.trim();
+
+
+        if (!message) {
+
+            messageInput.focus();
+
+            return;
+
+        }
+
+
+        /* Retirer accueil */
+
+        const welcome =
+            document.getElementById(
+                "welcome-message"
+            );
+
+        if (welcome) {
+
+            welcome.remove();
+
+        }
+
+
+        /* Message utilisateur */
+
+        addMessage(
+            message,
+            "user"
+        );
+
+
+        /* Nettoyage */
+
+        messageInput.value = "";
+
+        sendButton.disabled = true;
+
+        messageInput.disabled = true;
+
+
+        /* Loading */
+
+        addLoading();
+
+
+        /* =================================================
+           AJAX
+        ================================================= */
+
+        fetch(
+            "",
+            {
+                method: "POST",
+
+                headers: {
+                    "X-CSRFToken":
+                        document.querySelector(
+                            "[name=csrfmiddlewaretoken]"
+                        ).value,
+
+                    "Content-Type":
+                        "application/x-www-form-urlencoded",
+                },
+
+                body:
+                    "message=" +
+                    encodeURIComponent(message)
+            }
+        )
+
+        .then(response => {
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Erreur serveur"
+                );
+
+            }
+
+            return response.json();
+
         })
-        .then(response => response.json())
+
         .then(data => {
-            responseArea.innerHTML = `<div style="background: #f1f1f1; padding: 15px; border-radius: 8px; border-left: 5px solid #28a745;">
-                                        <strong>Réponse :</strong><br>${data.response}
-                                      </div>`;
-            messageInput.value = ''; // Clear input
+
+
+            /* Supprimer loading */
+
+            const loading =
+                document.getElementById(
+                    "ai-loading"
+                );
+
+            if (loading) {
+
+                loading.remove();
+
+            }
+
+
+            /* Réponse */
+
+            if (data.response) {
+
+                addMessage(
+                    data.response,
+                    "ai"
+                );
+
+            } else {
+
+                addMessage(
+                    "Une erreur est survenue lors de l'analyse.",
+                    "ai"
+                );
+
+            }
+
+        })
+
+        .catch(error => {
+
+            console.error(error);
+
+
+            const loading =
+                document.getElementById(
+                    "ai-loading"
+                );
+
+            if (loading) {
+
+                loading.remove();
+
+            }
+
+
+            addMessage(
+                "Impossible de contacter l'assistant pour le moment.",
+                "ai"
+            );
+
+        })
+
+        .finally(() => {
+
+            sendButton.disabled = false;
+
+            messageInput.disabled = false;
+
+            messageInput.focus();
+
         });
-    };
+
+    }
+);
+
+
+/* =========================================================
+   ENTER
+========================================================= */
+
+messageInput.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key === "Enter"
+            && !event.shiftKey
+        ) {
+
+            event.preventDefault();
+
+            form.requestSubmit();
+
+        }
+
+    }
+);
+
 </script>
+
 {% endblock %}
