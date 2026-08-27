@@ -2,9 +2,13 @@ name: Django CI/CD Pipeline
 
 on:
   push:
-    branches: [develop, main]
+    branches:
+      - develop
+      - main
   pull_request:
-    branches: [develop, main]
+    branches:
+      - develop
+      - main
 
 jobs:
   test_and_deploy:
@@ -14,35 +18,53 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER || 'django_user' }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'django_password' }}
+          POSTGRES_USER: django_user
+          POSTGRES_PASSWORD: django_password
           POSTGRES_DB: certificate_dev
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="pg_isready -U django_user -d certificate_dev"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     env:
-      SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-test-key-12345' }}
+      SECRET_KEY: ci-test-key-12345
+      DEBUG: "False"
+
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+
       POSTGRES_DB: certificate_dev
-      POSTGRES_USER: ${{ secrets.POSTGRES_USER || 'django_user' }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'django_password' }}
+      POSTGRES_USER: django_user
+      POSTGRES_PASSWORD: django_password
       POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: 5432
+
       DJANGO_SETTINGS_MODULE: mon_projet.settings
 
     steps:
+
+      # =========================
+      # CHECKOUT
+      # =========================
+
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      # =========================
+      # PYTHON
+      # =========================
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+          cache: "pip"
+
+      # =========================
+      # DEPENDENCIES
+      # =========================
 
       - name: Install dependencies
         run: |
@@ -54,34 +76,60 @@ jobs:
       # =========================
 
       - name: Run Ruff
-        run: ruff check .
+        run: |
+          ruff check .
 
       # =========================
-      # POSTGRESQL
+      # DATABASE
       # =========================
 
       - name: Wait for PostgreSQL
         run: |
-          sudo apt-get update && sudo apt-get install -y postgresql-client
-          timeout 60s bash -c 'until pg_isready -h 127.0.0.1 -p 5432 -U ${{ env.POSTGRES_USER }}; do
-            echo "Waiting for postgres...";
-            sleep 2;
-          done'
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+          timeout 60s bash -c '
+            until pg_isready \
+              -h "$POSTGRES_HOST" \
+              -p "$POSTGRES_PORT" \
+              -U "$POSTGRES_USER" \
+              -d "$POSTGRES_DB"
+            do
+              echo "Waiting for PostgreSQL..."
+              sleep 2
+            done
+          '
 
       # =========================
-      # DJANGO
+      # DJANGO CHECKS
+      # =========================
+
+      - name: Django system checks
+        run: |
+          python manage.py check
+
+      # =========================
+      # MIGRATIONS
       # =========================
 
       - name: Run migrations
-        run: python manage.py migrate
-
-      - name: Run CI Tests
-        run: python manage.py test
+        run: |
+          python manage.py migrate --noinput
 
       # =========================
-      # DEPLOYMENT
+      # TESTS
       # =========================
 
-      - name: CD Deployment Simulation
+      - name: Run tests
+        run: |
+          python manage.py test
+
+      # =========================
+      # DEPLOYMENT CHECK
+      # =========================
+
+      - name: Deployment ready
         if: success() && github.ref == 'refs/heads/main'
-        run: echo "Tests passed! Main branch ready for deployment."
+        run: |
+          echo "All checks passed."
+          echo "Main branch is ready for Render deployment."
