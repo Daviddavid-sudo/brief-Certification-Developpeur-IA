@@ -1,6 +1,5 @@
 import os
 import io
-import urllib
 import base64
 import json
 import logging
@@ -8,10 +7,10 @@ import logging
 import pandas as pd
 import geopandas as gpd
 import matplotlib
-
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 from datetime import datetime
 
@@ -23,6 +22,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.models import User
 from django.db import connection
+from django.db.models import Sum, Q
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
@@ -40,7 +40,14 @@ from dashboard.services import (
     execute_ai_sql,
 )
 
-from django.db.models import Q
+
+# ============================================================
+# LOGGER
+# ============================================================
+
+logger = logging.getLogger("ai_monitoring")
+
+
 # ============================================================
 # LANDING PAGE
 # ============================================================
@@ -67,15 +74,12 @@ class CustomLoginView(LoginView):
 
         user = self.request.user
 
-        # Administrateur
         if user.is_staff:
             return "/carte/"
 
-        # Utilisateur approuvé
         if hasattr(user, "profile") and user.profile.is_approved:
             return "/carte/"
 
-        # Utilisateur en attente
         return "/meteo_calendrier/"
 
 
@@ -91,13 +95,10 @@ def approved_required(view_func):
 
     def wrapper(request, *args, **kwargs):
 
-        # Pas connecté
         if not request.user.is_authenticated:
 
             return redirect("login")
 
-
-        # Administrateur
         if request.user.is_staff:
 
             return view_func(
@@ -106,8 +107,6 @@ def approved_required(view_func):
                 **kwargs
             )
 
-
-        # Profil inexistant
         if not hasattr(request.user, "profile"):
 
             messages.warning(
@@ -115,12 +114,8 @@ def approved_required(view_func):
                 "Votre compte est en attente d'approbation."
             )
 
-            return redirect(
-                "meteo_calendrier"
-            )
+            return redirect("meteo_calendrier")
 
-
-        # Compte non approuvé
         if not request.user.profile.is_approved:
 
             messages.warning(
@@ -128,17 +123,13 @@ def approved_required(view_func):
                 "Votre compte est en attente d'approbation."
             )
 
-            return redirect(
-                "meteo_calendrier"
-            )
-
+            return redirect("meteo_calendrier")
 
         return view_func(
             request,
             *args,
             **kwargs
         )
-
 
     return wrapper
 
@@ -173,7 +164,6 @@ def register(request):
 
         form = UserCreationForm()
 
-
     return render(
         request,
         "dashboard/register/register.html",
@@ -189,11 +179,9 @@ def register(request):
 
 def users_view(request):
 
-    # Seuls les administrateurs peuvent accéder
     if not request.user.is_authenticated:
 
         return redirect("login")
-
 
     if not request.user.is_staff:
 
@@ -202,17 +190,13 @@ def users_view(request):
             "Vous n'avez pas accès à cette page."
         )
 
-        return redirect(
-            "meteo_calendrier"
-        )
-
+        return redirect("meteo_calendrier")
 
     users = (
         User.objects
         .select_related("profile")
         .order_by("-date_joined")
     )
-
 
     return render(
         request,
@@ -226,11 +210,9 @@ def users_view(request):
 @require_POST
 def approve_user(request, user_id):
 
-    # Sécurité : uniquement admin
     if not request.user.is_authenticated:
 
         return redirect("login")
-
 
     if not request.user.is_staff:
 
@@ -239,18 +221,13 @@ def approve_user(request, user_id):
             "Accès refusé."
         )
 
-        return redirect(
-            "meteo_calendrier"
-        )
-
+        return redirect("meteo_calendrier")
 
     user = get_object_or_404(
         User,
         id=user_id
     )
 
-
-    # Empêche de modifier son propre compte
     if user == request.user:
 
         messages.error(
@@ -259,7 +236,6 @@ def approve_user(request, user_id):
         )
 
         return redirect("users")
-
 
     profile, created = UserProfile.objects.get_or_create(
         user=user
@@ -269,12 +245,10 @@ def approve_user(request, user_id):
 
     profile.save()
 
-
     messages.success(
         request,
         f"Le compte de {user.username} a été approuvé."
     )
-
 
     return redirect("users")
 
@@ -282,11 +256,9 @@ def approve_user(request, user_id):
 @require_POST
 def reject_user(request, user_id):
 
-    # Sécurité : uniquement admin
     if not request.user.is_authenticated:
 
         return redirect("login")
-
 
     if not request.user.is_staff:
 
@@ -295,18 +267,13 @@ def reject_user(request, user_id):
             "Accès refusé."
         )
 
-        return redirect(
-            "meteo_calendrier"
-        )
-
+        return redirect("meteo_calendrier")
 
     user = get_object_or_404(
         User,
         id=user_id
     )
 
-
-    # Empêche de modifier son propre compte
     if user == request.user:
 
         messages.error(
@@ -316,7 +283,6 @@ def reject_user(request, user_id):
 
         return redirect("users")
 
-
     profile, created = UserProfile.objects.get_or_create(
         user=user
     )
@@ -325,12 +291,10 @@ def reject_user(request, user_id):
 
     profile.save()
 
-
     messages.success(
         request,
         f"Le compte de {user.username} n'est plus approuvé."
     )
-
 
     return redirect("users")
 
@@ -339,42 +303,27 @@ def reject_user(request, user_id):
 # MONITORING
 # ============================================================
 
-logger = logging.getLogger(
-    "ai_monitoring"
-)
-
-
 def health_check(request):
 
     checks = {}
 
     is_healthy = True
 
-
     try:
 
         with connection.cursor() as cursor:
 
-            cursor.execute(
-                "SELECT 1"
-            )
+            cursor.execute("SELECT 1")
 
         checks["database"] = "UP"
 
-
     except Exception as e:
 
-        checks["database"] = (
-            f"DOWN: {str(e)}"
-        )
+        checks["database"] = f"DOWN: {str(e)}"
 
         is_healthy = False
 
-
-    api_key = os.getenv(
-        "GROQ_API_KEY"
-    )
-
+    api_key = os.getenv("GROQ_API_KEY")
 
     checks["ai_service"] = (
         "READY"
@@ -382,18 +331,15 @@ def health_check(request):
         else "MISSING_KEY"
     )
 
-
     if not api_key:
 
         is_healthy = False
-
 
     status_code = (
         200
         if is_healthy
         else 503
     )
-
 
     return JsonResponse(
         {
@@ -408,39 +354,32 @@ def health_check(request):
             "components":
                 checks
         },
-
         status=status_code
     )
 
 
 # ============================================================
-# UTILITAIRE GRAPHIQUES
+# UTILITAIRE CARTE MATPLOTLIB
 # ============================================================
 
 def get_plot_uri():
 
     buf = io.BytesIO()
 
-
     plt.savefig(
         buf,
         format="png",
-        bbox_inches="tight"
+        bbox_inches="tight",
+        dpi=120
     )
-
 
     buf.seek(0)
 
-
-    uri = urllib.parse.quote(
-        base64.b64encode(
-            buf.read()
-        )
-    )
-
+    uri = base64.b64encode(
+        buf.read()
+    ).decode("utf-8")
 
     plt.close()
-
 
     return uri
 
@@ -458,9 +397,7 @@ def product_list_view(request):
         "scraped_products.json"
     )
 
-
     data = []
-
 
     if os.path.exists(file_path):
 
@@ -474,13 +411,11 @@ def product_list_view(request):
 
                 data = json.load(f)
 
-
         except Exception as e:
 
             logger.error(
                 f"Erreur lecture produits : {e}"
             )
-
 
     return render(
         request,
@@ -493,10 +428,15 @@ def product_list_view(request):
 
 # ============================================================
 # CARTE DES VENTES
+# + GRAPHIQUE ÉVOLUTION DU CA
 # ============================================================
 
 @approved_required
 def carte_ventes_view(request):
+
+    # ========================================================
+    # CONFIGURATION
+    # ========================================================
 
     selected_year = 2024
 
@@ -506,9 +446,37 @@ def carte_ventes_view(request):
     )
 
     try:
+
         selected_month = int(selected_month)
+
     except (TypeError, ValueError):
-        selected_month = timezone.now().month
+
+        selected_month = 1
+
+    if selected_month < 1 or selected_month > 12:
+
+        selected_month = 1
+
+
+    mois_noms = [
+        "Janvier",
+        "Février",
+        "Mars",
+        "Avril",
+        "Mai",
+        "Juin",
+        "Juillet",
+        "Août",
+        "Septembre",
+        "Octobre",
+        "Novembre",
+        "Décembre",
+    ]
+
+
+    # ========================================================
+    # GEOJSON
+    # ========================================================
 
     path_geojson = os.path.join(
         settings.BASE_DIR,
@@ -520,8 +488,15 @@ def carte_ventes_view(request):
         path_geojson
     )
 
+    france["code"] = (
+        france["code"]
+        .astype(str)
+        .str.strip()
+    )
+
+
     # ========================================================
-    # RÉCUPÉRATION DES VENTES
+    # VENTES DU MOIS
     # ========================================================
 
     ventes_qs = (
@@ -540,13 +515,35 @@ def carte_ventes_view(request):
         list(ventes_qs)
     )
 
+
     # ========================================================
-    # DONNÉES PAR DÉPARTEMENT
+    # VALEURS PAR DÉFAUT
     # ========================================================
 
     top_departements = []
 
     total_ca = 0
+
+    nombre_departements = 0
+
+    top_department = "—"
+
+    top_department_ca = 0
+
+    ca_moyen = 0
+
+
+    # ========================================================
+    # AGRÉGATION DES VENTES
+    # ========================================================
+
+    df_regroupe = pd.DataFrame(
+        columns=[
+            "code_dept",
+            "ca_tot"
+        ]
+    )
+
 
     if not df_ventes.empty:
 
@@ -561,9 +558,13 @@ def carte_ventes_view(request):
             errors="coerce"
         ).fillna(0)
 
+
         df_regroupe = (
             df_ventes
-            .groupby("code_dept", as_index=False)["ca_tot"]
+            .groupby(
+                "code_dept",
+                as_index=False
+            )["ca_tot"]
             .sum()
             .sort_values(
                 "ca_tot",
@@ -571,8 +572,26 @@ def carte_ventes_view(request):
             )
         )
 
-        # CA TOTAL
-        total_ca = df_regroupe["ca_tot"].sum()
+
+        # ====================================================
+        # KPI
+        # ====================================================
+
+        total_ca = float(
+            df_regroupe["ca_tot"].sum()
+        )
+
+        nombre_departements = int(
+            df_regroupe["code_dept"].nunique()
+        )
+
+        if nombre_departements > 0:
+
+            ca_moyen = (
+                total_ca
+                / nombre_departements
+            )
+
 
         # ====================================================
         # TOP 10
@@ -584,168 +603,384 @@ def carte_ventes_view(request):
             .reset_index(drop=True)
         )
 
+
         for index, row in top10.iterrows():
 
-            code = str(row["code_dept"])
+            code = str(
+                row["code_dept"]
+            ).strip()
 
             nom = code
+
 
             try:
 
                 departement_geo = france[
-                    france["code"].astype(str).str.strip() == code
+                    france["code"] == code
                 ]
 
                 if not departement_geo.empty:
 
-                    if "nom" in departement_geo.columns:
+                    if "nom" in france.columns:
 
-                        nom = departement_geo.iloc[0]["nom"]
+                        nom = (
+                            departement_geo
+                            .iloc[0]["nom"]
+                        )
 
-                    elif "name" in departement_geo.columns:
+                    elif "name" in france.columns:
 
-                        nom = departement_geo.iloc[0]["name"]
+                        nom = (
+                            departement_geo
+                            .iloc[0]["name"]
+                        )
 
-            except Exception:
+            except Exception as e:
 
-                pass
+                logger.warning(
+                    f"Impossible de trouver "
+                    f"le département {code}: {e}"
+                )
+
 
             top_departements.append(
                 {
-                    "rang": index + 1,
-                    "code": code,
-                    "nom": nom,
-                    "ca": row["ca_tot"]
+                    "rang":
+                        index + 1,
+
+                    "code":
+                        code,
+
+                    "nom":
+                        nom,
+
+                    "ca":
+                        float(row["ca_tot"])
                 }
             )
 
-    # ========================================================
-    # KPI
-    # ========================================================
 
-    top_department = (
-        top_departements[0]["nom"]
-        if top_departements
-        else "—"
-    )
+        # ====================================================
+        # MEILLEUR DÉPARTEMENT
+        # ====================================================
 
-    top_department_ca = (
-        top_departements[0]["ca"]
-        if top_departements
-        else 0
-    )
+        if top_departements:
 
-    nombre_departements = (
-        len(df_ventes["code_dept"].unique())
-        if not df_ventes.empty
-        else 0
-    )
+            top_department = (
+                top_departements[0]["nom"]
+            )
 
-    ca_moyen = (
-        total_ca / nombre_departements
-        if nombre_departements > 0
-        else 0
-    )
+            top_department_ca = (
+                top_departements[0]["ca"]
+            )
+
 
     # ========================================================
     # CARTE
     # ========================================================
 
-    max_pop_obj = (
-        Population.objects
-        .order_by("-pop")
-        .first()
-    )
-
-    vmax_fixed = (
-        max_pop_obj.pop * 6
-        if max_pop_obj
-        else 1000000
-    )
-
-    fig, ax = plt.subplots(
-        1,
-        1,
+    fig_map, ax = plt.subplots(
         figsize=(10, 10)
     )
 
-    if not df_ventes.empty:
 
-        france = france.merge(
+    if not df_regroupe.empty:
+
+        france_map = france.merge(
             df_regroupe,
             left_on="code",
             right_on="code_dept",
             how="left"
         )
 
-        france.plot(
+
+        vmax = float(
+            df_regroupe["ca_tot"].max()
+        )
+
+        if vmax <= 0:
+
+            vmax = 1
+
+
+        france_map.plot(
             column="ca_tot",
             ax=ax,
             legend=True,
             cmap="OrRd",
             vmin=0,
-            vmax=vmax_fixed,
+            vmax=vmax,
             missing_kwds={
-                "color": "lightgrey"
+                "color": "#eeeeee",
+                "edgecolor": "white"
             },
             legend_kwds={
                 "label":
-                    "Chiffre d'Affaires (€)"
+                    "Chiffre d'affaires (€)"
             }
         )
+
 
     else:
 
         france.plot(
             ax=ax,
-            color="lightgrey"
+            color="#eeeeee",
+            edgecolor="white"
         )
+
 
     ax.set_axis_off()
 
     ax.set_title(
-        f"Ventes par Département - Mois {selected_month}",
+        f"Chiffre d'affaires par département — "
+        f"{mois_noms[selected_month - 1]} {selected_year}",
         fontsize=16,
         fontweight="bold"
     )
 
+
     # ========================================================
-    # ENVOI AU TEMPLATE
+    # CONVERSION CARTE → BASE64
     # ========================================================
+
+    map_buffer = io.BytesIO()
+
+    fig_map.savefig(
+        map_buffer,
+        format="png",
+        bbox_inches="tight",
+        dpi=120
+    )
+
+    map_buffer.seek(0)
+
+    data_map = base64.b64encode(
+        map_buffer.read()
+    ).decode("utf-8")
+
+    plt.close(fig_map)
+
+
+    # ========================================================
+    # ÉVOLUTION DU CA SUR L'ANNÉE
+    # ========================================================
+
+    evolution_qs = (
+        ActiviteCommerciale.objects
+        .filter(
+            annee=selected_year
+        )
+        .values("mois")
+        .annotate(
+            total_ca=Sum("ca_tot")
+        )
+        .order_by("mois")
+    )
+
+
+    ca_par_mois = {
+        int(row["mois"]):
+            float(row["total_ca"] or 0)
+
+        for row in evolution_qs
+    }
+
+
+    # Toujours les 12 mois
+
+    ca_evolution = [
+        ca_par_mois.get(
+            mois_num,
+            0
+        )
+
+        for mois_num in range(1, 13)
+    ]
+
+
+    # ========================================================
+    # GRAPHIQUE PLOTLY
+    # ========================================================
+
+    fig_evolution = go.Figure()
+
+
+    fig_evolution.add_trace(
+        go.Scatter(
+            x=mois_noms,
+
+            y=ca_evolution,
+
+            mode="lines+markers",
+
+            name="Chiffre d'affaires",
+
+            line=dict(
+                width=3,
+                shape="spline"
+            ),
+
+            marker=dict(
+                size=7
+            ),
+
+            hovertemplate=(
+                "<b>%{x}</b><br>"
+                "CA : %{y:,.0f} €"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+
+    # ========================================================
+    # LIGNE DU MOIS SÉLECTIONNÉ
+    # ========================================================
+
+    fig_evolution.add_vline(
+        x=selected_month - 1,
+        line_width=1,
+        line_dash="dash",
+        opacity=0.5
+    )
+
+
+    # ========================================================
+    # STYLE DU GRAPHIQUE
+    # ========================================================
+
+    fig_evolution.update_layout(
+
+        title={
+            "text":
+                "Évolution du chiffre d'affaires — 2024",
+
+            "x":
+                0.02,
+
+            "xanchor":
+                "left",
+
+            "font": {
+                "size": 16
+            }
+        },
+
+        xaxis={
+            "title": "Mois",
+            "showgrid": False
+        },
+
+        yaxis={
+            "title": "Chiffre d'affaires (€)",
+            "separatethousands": True
+        },
+
+        hovermode="x unified",
+
+        template="plotly_white",
+
+        height=420,
+
+        margin={
+            "l": 60,
+            "r": 30,
+            "t": 65,
+            "b": 55
+        },
+
+        font={
+            "family": "Arial",
+            "size": 12
+        },
+
+        paper_bgcolor="white",
+
+        plot_bgcolor="white",
+
+        showlegend=False
+    )
+
+
+    # ========================================================
+    # PLOTLY → HTML
+    # ========================================================
+
+    graph_html = fig_evolution.to_html(
+
+        full_html=False,
+
+        include_plotlyjs="cdn",
+
+        config={
+            "responsive": True,
+
+            "displayModeBar": True,
+
+            "displaylogo": False,
+
+            "modeBarButtonsToRemove": [
+                "lasso2d",
+                "select2d"
+            ]
+        }
+    )
+
+
+    # ========================================================
+    # CONTEXT → carte.html
+    # ========================================================
+
+    context = {
+
+        # CARTE
+        "data_map":
+            data_map,
+
+        # FILTRE
+        "selected_month":
+            selected_month,
+
+        "months_range":
+            range(1, 13),
+
+        # TOP 10
+        "top_departements":
+            top_departements,
+
+        # KPI
+        "total_ca":
+            total_ca,
+
+        "top_department":
+            top_department,
+
+        "top_department_ca":
+            top_department_ca,
+
+        "ca_moyen":
+            ca_moyen,
+
+        "nombre_departements":
+            nombre_departements,
+
+        # GRAPHIQUE
+        "graph_html":
+            graph_html,
+
+        "ca_evolution":
+            ca_evolution,
+
+        "mois_noms":
+            mois_noms,
+    }
+
 
     return render(
         request,
         "dashboard/carte.html",
-        {
-            "data_map":
-                get_plot_uri(),
-
-            "selected_month":
-                selected_month,
-
-            "months_range":
-                range(1, 13),
-
-            # TOP 10
-            "top_departements":
-                top_departements,
-
-            # KPI
-            "total_ca":
-                total_ca,
-
-            "top_department":
-                top_department,
-
-            "top_department_ca":
-                top_department_ca,
-
-            "ca_moyen":
-                ca_moyen,
-
-            "nombre_departements":
-                nombre_departements
-        }
+        context
     )
 
 
@@ -759,7 +994,6 @@ def consultation_meteo(request):
     resultats = None
 
     data_map = None
-
 
     date_selectionnee = request.GET.get(
         "date_choisie"
@@ -798,9 +1032,14 @@ def consultation_meteo(request):
             )
 
 
+            france["code"] = (
+                france["code"]
+                .astype(str)
+                .str.strip()
+            )
+
+
             fig, ax = plt.subplots(
-                1,
-                1,
                 figsize=(10, 10)
             )
 
@@ -815,6 +1054,13 @@ def consultation_meteo(request):
                             "temp_max"
                         )
                     )
+                )
+
+
+                df_meteo["dep"] = (
+                    df_meteo["dep"]
+                    .astype(str)
+                    .str.strip()
                 )
 
 
@@ -850,7 +1096,7 @@ def consultation_meteo(request):
                     },
                     legend_kwds={
                         "label":
-                            "Température Minimale (°C)",
+                            "Température minimale (°C)",
 
                         "orientation":
                             "horizontal",
@@ -909,10 +1155,6 @@ def consultation_meteo(request):
 # POPULATION
 # ============================================================
 
-# ============================================================
-# POPULATION
-# ============================================================
-
 @approved_required
 def carte_population_view(request):
 
@@ -922,12 +1164,21 @@ def carte_population_view(request):
         "departements.geojson"
     )
 
+
     france = gpd.read_file(
         path_geojson
     )
 
+
+    france["code"] = (
+        france["code"]
+        .astype(str)
+        .str.strip()
+    )
+
+
     # ========================================================
-    # RÉCUPÉRATION DES DONNÉES
+    # DONNÉES POPULATION
     # ========================================================
 
     pop_qs = (
@@ -939,168 +1190,117 @@ def carte_population_view(request):
         )
     )
 
+
     df_pop = pd.DataFrame(
         list(pop_qs)
     )
 
-    # ========================================================
-    # POPULATION TOTALE
-    # ========================================================
 
     population_totale = 0
 
-    if not df_pop.empty:
-
-        population_totale = df_pop["pop"].sum()
-
-    # ========================================================
-    # TOP 10 DÉPARTEMENTS
-    # ========================================================
-
     top_departements = []
 
-    if not df_pop.empty:
-
-        top10 = (
-            df_pop
-            .sort_values(
-                by="pop",
-                ascending=False
-            )
-            .head(10)
-            .reset_index(drop=True)
-        )
-
-        for index, row in top10.iterrows():
-
-            code = str(row["dep"])
-
-            # Recherche du nom du département
-            nom = code
-
-            try:
-
-                departement_geo = france[
-                    france["code"].astype(str) == code
-                ]
-
-                if not departement_geo.empty:
-
-                    # Plusieurs fichiers GeoJSON utilisent
-                    # différentes colonnes pour le nom.
-                    if "nom" in departement_geo.columns:
-
-                        nom = departement_geo.iloc[0]["nom"]
-
-                    elif "name" in departement_geo.columns:
-
-                        nom = departement_geo.iloc[0]["name"]
-
-            except Exception:
-
-                pass
-
-            top_departements.append(
-                {
-                    "rang": index + 1,
-                    "code": code,
-                    "nom": nom,
-                    "population": row["pop"]
-                }
-            )
-
-    # ========================================================
-    # CARTE
-    # ========================================================
-
-    fig, ax = plt.subplots(
-        1,
-        1,
-        figsize=(10, 10)
-    )
 
     if not df_pop.empty:
 
-        # Harmonisation des codes département
         df_pop["dep"] = (
             df_pop["dep"]
             .astype(str)
             .str.strip()
         )
 
-        france["code"] = (
-            france["code"]
-            .astype(str)
-            .str.strip()
+        df_pop["pop"] = pd.to_numeric(
+            df_pop["pop"],
+            errors="coerce"
+        ).fillna(0)
+
+
+        population_totale = float(
+            df_pop["pop"].sum()
         )
 
-        france = france.merge(
-            df_pop,
-            left_on="code",
-            right_on="dep",
-            how="left"
+
+        # ====================================================
+        # TOP 10
+        # ====================================================
+
+        top10 = (
+            df_pop
+            .sort_values(
+                "pop",
+                ascending=False
+            )
+            .head(10)
+            .reset_index(drop=True)
         )
 
-        france.plot(
-            column="pop",
-            ax=ax,
-            legend=True,
-            cmap="YlGnBu",
-            missing_kwds={
-                "color": "#f5f5f5"
-            },
-            legend_kwds={
-                "label": "Nombre d'habitants (Source INSEE)"
-            }
-        )
 
-    else:
+        for index, row in top10.iterrows():
 
-        france.plot(
-            ax=ax,
-            color="lightgrey"
-        )
+            code = str(
+                row["dep"]
+            ).strip()
 
-    ax.set_axis_off()
+            nom = code
 
-    ax.set_title(
-        "Population par département",
-        fontsize=16,
-        fontweight="bold"
-    )
+
+            try:
+
+                departement_geo = france[
+                    france["code"] == code
+                ]
+
+
+                if not departement_geo.empty:
+
+                    if "nom" in france.columns:
+
+                        nom = (
+                            departement_geo
+                            .iloc[0]["nom"]
+                        )
+
+                    elif "name" in france.columns:
+
+                        nom = (
+                            departement_geo
+                            .iloc[0]["name"]
+                        )
+
+            except Exception:
+
+                pass
+
+
+            top_departements.append(
+                {
+                    "rang":
+                        index + 1,
+
+                    "code":
+                        code,
+
+                    "nom":
+                        nom,
+
+                    "population":
+                        float(row["pop"])
+                }
+            )
+
 
     # ========================================================
-    # ENVOI AU TEMPLATE
+    # CARTE
     # ========================================================
-
-    return render(
-        request,
-        "dashboard/population.html",
-        {
-            "data_map": get_plot_uri(),
-
-            "population_totale": population_totale,
-
-            "top_departements": top_departements
-        }
-    )
-
-
-    df_pop = pd.DataFrame(
-        list(pop_qs)
-    )
-
 
     fig, ax = plt.subplots(
-        1,
-        1,
         figsize=(10, 10)
     )
 
 
     if not df_pop.empty:
 
-        france = france.merge(
+        france_map = france.merge(
             df_pop,
             left_on="code",
             right_on="dep",
@@ -1108,7 +1308,7 @@ def carte_population_view(request):
         )
 
 
-        france.plot(
+        france_map.plot(
             column="pop",
             ax=ax,
             legend=True,
@@ -1127,7 +1327,8 @@ def carte_population_view(request):
 
         france.plot(
             ax=ax,
-            color="lightgrey"
+            color="lightgrey",
+            edgecolor="white"
         )
 
 
@@ -1135,8 +1336,13 @@ def carte_population_view(request):
 
 
     ax.set_title(
-        "Population réelle par Département"
+        "Population par département",
+        fontsize=16,
+        fontweight="bold"
     )
+
+
+    data_map = get_plot_uri()
 
 
     return render(
@@ -1144,7 +1350,13 @@ def carte_population_view(request):
         "dashboard/population.html",
         {
             "data_map":
-                get_plot_uri()
+                data_map,
+
+            "population_totale":
+                population_totale,
+
+            "top_departements":
+                top_departements
         }
     )
 
@@ -1258,7 +1470,6 @@ def ai_assistant_view(request):
                     "error":
                         str(e)
                 },
-
                 status=500
             )
 
@@ -1270,7 +1481,7 @@ def ai_assistant_view(request):
 
 
 # ============================================================
-# ACTIVITE COMMERCIALE
+# ACTIVITÉ COMMERCIALE - CRÉATION
 # ============================================================
 
 @approved_required
@@ -1280,7 +1491,6 @@ def activite_create(request):
         str(i).zfill(2)
         for i in range(1, 93)
     ]
-
 
     mois = range(1, 13)
 
@@ -1384,33 +1594,56 @@ def activite_create(request):
     )
 
 
+# ============================================================
+# ACTIVITÉ COMMERCIALE - LISTE
+# ============================================================
+
 @approved_required
 def activite_list(request):
 
-    search = request.GET.get("search", "").strip()
+    search = (
+        request.GET
+        .get("search", "")
+        .strip()
+    )
+
 
     activites = (
         ActiviteCommerciale.objects
         .all()
-        .order_by("-annee", "-mois", "ville")
+        .order_by(
+            "-annee",
+            "-mois",
+            "ville"
+        )
     )
+
 
     if search:
 
         activites = activites.filter(
             Q(ville__icontains=search)
-            | Q(code_dept__icontains=search)
+            |
+            Q(code_dept__icontains=search)
         )
+
 
     return render(
         request,
         "dashboard/activite_list.html",
         {
-            "activites": activites,
-            "search": search
+            "activites":
+                activites,
+
+            "search":
+                search
         }
     )
 
+
+# ============================================================
+# ACTIVITÉ COMMERCIALE - MODIFICATION
+# ============================================================
 
 @approved_required
 def activite_update(request, id):
@@ -1494,6 +1727,10 @@ def activite_update(request, id):
         }
     )
 
+
+# ============================================================
+# ACTIVITÉ COMMERCIALE - SUPPRESSION
+# ============================================================
 
 @approved_required
 def activite_delete(request, id):

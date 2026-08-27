@@ -193,7 +193,7 @@
 
 
 /* =========================================================
-   MAP + TOP 10 LAYOUT
+   MAP + TOP 10
 ========================================================= */
 
 .sales-analysis {
@@ -283,7 +283,7 @@
 
 
 /* =========================================================
-   TOP 10 CARD
+   TOP 10
 ========================================================= */
 
 .top10-card {
@@ -323,11 +323,6 @@
     font-size: 12px;
 }
 
-
-/* =========================================================
-   TOP 10 LIST
-========================================================= */
-
 .top10-list {
     display: flex;
     flex-direction: column;
@@ -350,9 +345,6 @@
 .top10-item:hover {
     background: #f9fafb;
 }
-
-
-/* RANK */
 
 .top10-rank {
     display: flex;
@@ -389,12 +381,8 @@
     color: #374151;
 }
 
-
-/* DEPARTMENT */
-
 .top10-info {
     flex: 1;
-
     min-width: 0;
 }
 
@@ -418,9 +406,6 @@
     font-size: 10px;
 }
 
-
-/* VALUE */
-
 .top10-value {
     flex-shrink: 0;
 
@@ -441,11 +426,6 @@
     font-weight: 400;
 }
 
-
-/* =========================================================
-   TOP 10 EMPTY
-========================================================= */
-
 .top10-empty {
     display: flex;
     align-items: center;
@@ -464,34 +444,6 @@
     text-align: center;
 }
 
-
-/* =========================================================
-   FOOTERS
-========================================================= */
-
-.sales-map-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    padding: 11px 20px;
-
-    border-top: 1px solid #e5e7eb;
-
-    color: #9ca3af;
-
-    font-size: 11px;
-}
-
-.footer-source {
-    color: #9ca3af;
-}
-
-.footer-period {
-    color: #6b7280;
-    font-weight: 500;
-}
-
 .top10-footer {
     margin-top: auto;
 
@@ -508,7 +460,73 @@
 
 
 /* =========================================================
-   EMPTY MAP
+   GRAPH CARD
+========================================================= */
+
+.evolution-card {
+    margin-top: 18px;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+.evolution-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 17px 20px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.evolution-title {
+    margin: 0;
+
+    color: #1f2937;
+
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.evolution-description {
+    margin: 4px 0 0;
+
+    color: #9ca3af;
+
+    font-size: 12px;
+}
+
+.evolution-period {
+    padding: 6px 10px;
+
+    background: #f9fafb;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 6px;
+
+    color: #6b7280;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.evolution-content {
+    padding: 10px 15px 5px;
+}
+
+
+/* =========================================================
+   EMPTY
 ========================================================= */
 
 .sales-empty {
@@ -564,13 +582,43 @@
 
 
 /* =========================================================
+   FOOTER
+========================================================= */
+
+.sales-map-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 11px 20px;
+
+    border-top: 1px solid #e5e7eb;
+
+    color: #9ca3af;
+
+    font-size: 11px;
+}
+
+.footer-source {
+    color: #9ca3af;
+}
+
+.footer-period {
+    color: #6b7280;
+    font-weight: 500;
+}
+
+
+/* =========================================================
    RESPONSIVE
 ========================================================= */
 
 @media (max-width: 1100px) {
 
     .sales-analysis {
-        grid-template-columns: minmax(0, 1fr) 300px;
+        grid-template-columns:
+            minmax(0, 1fr)
+            300px;
     }
 
 }
@@ -604,6 +652,11 @@
         min-height: 450px;
     }
 
+    .evolution-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
 }
 
 
@@ -634,7 +687,9 @@
 
 </style>
 
+
 <div class="sales-page">
+
 
 <!-- =====================================================
      HEADER
@@ -642,31 +697,29 @@
 
 <header class="sales-header">
 
+    <div>
 
-<div>
+        <h1 class="sales-title">
+            Analyse des ventes
+        </h1>
 
-    <h1 class="sales-title">
-        Analyse des ventes
-    </h1>
+        <p class="sales-subtitle">
+            Visualisez la répartition et l'évolution
+            du chiffre d'affaires.
+        </p>
 
-    <p class="sales-subtitle">
-        Visualisez la répartition du chiffre d'affaires
-        à l'échelle départementale.
-    </p>
+    </div>
 
-</div>
+    <div class="period-badge">
 
+        <span class="period-dot"></span>
 
-<div class="period-badge">
+        Données {{ selected_year|default:"2024" }}
 
-    <span class="period-dot"></span>
-
-    Données 2024
-
-</div>
-
+    </div>
 
 </header>
+
 
 <!-- =====================================================
      KPI
@@ -675,58 +728,59 @@
 <section class="sales-kpis">
 
 
-<div class="sales-kpi">
+    <div class="sales-kpi">
 
-    <p class="sales-kpi-label">
-        Période
-    </p>
+        <p class="sales-kpi-label">
+            CA du mois
+        </p>
 
-    <p class="sales-kpi-value">
-        {{ selected_month }}
-    </p>
+        <p class="sales-kpi-value">
+            {{ total_ca|floatformat:0 }} €
+        </p>
 
-    <p class="sales-kpi-info">
-        Mois sélectionné
-    </p>
+        <p class="sales-kpi-info">
+            Mois {{ selected_month }}
+        </p>
 
-</div>
-
-
-<div class="sales-kpi">
-
-    <p class="sales-kpi-label">
-        Année
-    </p>
-
-    <p class="sales-kpi-value">
-        2024
-    </p>
-
-    <p class="sales-kpi-info">
-        Données commerciales
-    </p>
-
-</div>
+    </div>
 
 
-<div class="sales-kpi">
+    <div class="sales-kpi">
 
-    <p class="sales-kpi-label">
-        Zone
-    </p>
+        <p class="sales-kpi-label">
+            Département leader
+        </p>
 
-    <p class="sales-kpi-value">
-        France
-    </p>
+        <p class="sales-kpi-value">
+            {{ top_department }}
+        </p>
 
-    <p class="sales-kpi-info">
-        Analyse départementale
-    </p>
+        <p class="sales-kpi-info">
+            {{ top_department_ca|floatformat:0 }} €
+        </p>
 
-</div>
+    </div>
+
+
+    <div class="sales-kpi">
+
+        <p class="sales-kpi-label">
+            Départements actifs
+        </p>
+
+        <p class="sales-kpi-value">
+            {{ nombre_departements }}
+        </p>
+
+        <p class="sales-kpi-info">
+            Pour le mois sélectionné
+        </p>
+
+    </div>
 
 
 </section>
+
 
 <!-- =====================================================
      FILTER
@@ -734,54 +788,53 @@
 
 <section class="sales-filter">
 
+    <div class="filter-info">
 
-<div class="filter-info">
+        <span class="filter-title">
+            Période d'analyse
+        </span>
 
-    <span class="filter-title">
-        Période d'analyse
-    </span>
+        <span class="filter-text">
+            Sélectionnez le mois à afficher sur la carte.
+        </span>
 
-    <span class="filter-text">
-        Sélectionnez le mois à afficher sur la carte.
-    </span>
-
-</div>
+    </div>
 
 
-<form
-    method="get"
-    id="filter-form"
-    class="month-form"
->
-
-    <select
-        name="month"
-        id="month"
-        class="month-select"
-        onchange="this.form.submit()"
+    <form
+        method="get"
+        id="filter-form"
+        class="month-form"
     >
 
-        {% for m in months_range %}
+        <select
+            name="month"
+            id="month"
+            class="month-select"
+            onchange="this.form.submit()"
+        >
 
-            <option
-                value="{{ m }}"
-                {% if m == selected_month %}
-                    selected
-                {% endif %}
-            >
+            {% for m in months_range %}
 
-                Mois {{ m }}
+                <option
+                    value="{{ m }}"
+                    {% if m == selected_month %}
+                        selected
+                    {% endif %}
+                >
 
-            </option>
+                    Mois {{ m }}
 
-        {% endfor %}
+                </option>
 
-    </select>
+            {% endfor %}
 
-</form>
+        </select>
 
+    </form>
 
 </section>
+
 
 <!-- =====================================================
      CARTE + TOP 10
@@ -790,47 +843,222 @@
 <div class="sales-analysis">
 
 
-<!-- =================================================
-     CARTE
-================================================== -->
+    <!-- =================================================
+         CARTE
+    ================================================== -->
 
-<section class="sales-map-card">
+    <section class="sales-map-card">
 
 
-    <div class="sales-map-header">
+        <div class="sales-map-header">
+
+            <div>
+
+                <h2 class="sales-map-title">
+                    Chiffre d'affaires par département
+                </h2>
+
+                <p class="sales-map-description">
+                    Intensité des ventes sur le territoire français.
+                </p>
+
+            </div>
+
+
+            <span class="period-badge">
+
+                {{ selected_month }} · 2024
+
+            </span>
+
+        </div>
+
+
+        <div class="sales-map-content">
+
+
+            {% if data_map %}
+
+                <img
+                    src="data:image/png;base64,{{ data_map }}"
+                    alt="Carte du chiffre d'affaires par département"
+                    class="sales-map-image"
+                >
+
+            {% else %}
+
+                <div class="sales-empty">
+
+                    <div class="sales-empty-icon">
+                        —
+                    </div>
+
+                    <h3 class="sales-empty-title">
+                        Aucune donnée disponible
+                    </h3>
+
+                    <p class="sales-empty-text">
+                        Aucune donnée commerciale n'est disponible
+                        pour le mois sélectionné.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+
+        </div>
+
+
+        {% if data_map %}
+
+            <footer class="sales-map-footer">
+
+                <span class="footer-source">
+                    Données commerciales
+                </span>
+
+                <span class="footer-period">
+                    Mois {{ selected_month }} · Année 2024
+                </span>
+
+            </footer>
+
+        {% endif %}
+
+
+    </section>
+
+
+    <!-- =================================================
+         TOP 10
+    ================================================== -->
+
+    <section class="top10-card">
+
+
+        <header class="top10-header">
+
+            <h2 class="top10-title">
+                Top 10 départements
+            </h2>
+
+            <p class="top10-description">
+                Départements avec le chiffre d'affaires
+                le plus élevé.
+            </p>
+
+        </header>
+
+
+        {% if top_departements %}
+
+            <div class="top10-list">
+
+                {% for dept in top_departements %}
+
+                    <div class="top10-item">
+
+                        <div class="top10-rank">
+                            {{ dept.rang }}
+                        </div>
+
+
+                        <div class="top10-info">
+
+                            <div class="top10-name">
+                                {{ dept.nom }}
+                            </div>
+
+                            <div class="top10-code">
+                                Département {{ dept.code }}
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+                            <div class="top10-value">
+                                {{ dept.ca|floatformat:0 }} €
+                            </div>
+
+                            <div class="top10-value-label">
+                                CA
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            <div class="top10-footer">
+
+                Classement calculé pour le mois
+                {{ selected_month }} de l'année 2024.
+
+            </div>
+
+
+        {% else %}
+
+            <div class="top10-empty">
+
+                Aucune donnée commerciale disponible
+                pour cette période.
+
+            </div>
+
+        {% endif %}
+
+
+    </section>
+
+
+</div>
+
+
+<!-- =====================================================
+     ÉVOLUTION DU CA
+====================================================== -->
+
+<section class="evolution-card">
+
+
+    <header class="evolution-header">
 
         <div>
 
-            <h2 class="sales-map-title">
-                Chiffre d'affaires par département
+            <h2 class="evolution-title">
+                Évolution du chiffre d'affaires
             </h2>
 
-            <p class="sales-map-description">
-                Intensité des ventes sur le territoire français.
+            <p class="evolution-description">
+                Évolution mensuelle du chiffre d'affaires
+                sur l'ensemble de l'année 2024.
             </p>
 
         </div>
 
 
-        <span class="period-badge">
+        <div class="evolution-period">
 
-            {{ selected_month }} · 2024
+            Janvier — Décembre 2024
 
-        </span>
+        </div>
 
-    </div>
-
-
-    <div class="sales-map-content">
+    </header>
 
 
-        {% if data_map %}
+    <div class="evolution-content">
 
-            <img
-                src="data:image/png;base64,{{ data_map }}"
-                alt="Carte du chiffre d'affaires par département"
-                class="sales-map-image"
-            >
+        {% if graph_html %}
+
+            {{ graph_html|safe }}
 
         {% else %}
 
@@ -841,144 +1069,23 @@
                 </div>
 
                 <h3 class="sales-empty-title">
-                    Aucune donnée disponible
+                    Graphique indisponible
                 </h3>
 
                 <p class="sales-empty-text">
-                    Aucune donnée commerciale n'est disponible
-                    pour le mois sélectionné.
+                    Les données d'évolution du chiffre d'affaires
+                    ne sont pas disponibles.
                 </p>
 
             </div>
 
         {% endif %}
 
-
     </div>
 
 
-    {% if data_map %}
-
-        <footer class="sales-map-footer">
-
-            <span class="footer-source">
-                Données commerciales
-            </span>
-
-            <span class="footer-period">
-                Mois {{ selected_month }} · Année 2024
-            </span>
-
-        </footer>
-
-    {% endif %}
-
-
 </section>
 
-
-<!-- =================================================
-     TOP 10
-================================================== -->
-
-<section class="top10-card">
-
-
-    <header class="top10-header">
-
-        <h2 class="top10-title">
-            Top 10 départements
-        </h2>
-
-        <p class="top10-description">
-            Départements avec le chiffre d'affaires
-            le plus élevé.
-        </p>
-
-    </header>
-
-
-    {% if top_departements %}
-
-        <div class="top10-list">
-
-
-            {% for dept in top_departements %}
-
-                <div class="top10-item">
-
-
-                    <div class="top10-rank">
-
-                        {{ dept.rang }}
-
-                    </div>
-
-
-                    <div class="top10-info">
-
-                        <div class="top10-name">
-
-                            {{ dept.nom }}
-
-                        </div>
-
-                        <div class="top10-code">
-
-                            Département {{ dept.code }}
-
-                        </div>
-
-                    </div>
-
-
-                    <div>
-
-                        <div class="top10-value">
-
-                            {{ dept.ca|floatformat:0 }} €
-
-                        </div>
-
-                        <div class="top10-value-label">
-                            CA
-                        </div>
-
-                    </div>
-
-
-                </div>
-
-            {% endfor %}
-
-
-        </div>
-
-
-        <div class="top10-footer">
-
-            Classement calculé pour le mois
-            {{ selected_month }} de l'année 2024.
-
-        </div>
-
-
-    {% else %}
-
-        <div class="top10-empty">
-
-            Aucune donnée commerciale disponible
-            pour cette période.
-
-        </div>
-
-    {% endif %}
-
-
-</section>
-
-
-</div>
 
 </div>
 
