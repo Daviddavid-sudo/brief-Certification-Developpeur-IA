@@ -8,6 +8,11 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+# =========================================================
+# SECURITY
+# =========================================================
+
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-key")
 
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
@@ -18,6 +23,17 @@ ALLOWED_HOSTS = [
     "web",
     "brief-certification-developpeur-ia.onrender.com",
 ]
+
+# Ajouter d'autres hosts depuis une variable d'environnement
+# si nécessaire
+extra_hosts = os.getenv("ALLOWED_HOSTS", "")
+
+if extra_hosts:
+    ALLOWED_HOSTS.extend(
+        host.strip()
+        for host in extra_hosts.split(",")
+        if host.strip()
+    )
 
 
 # =========================================================
@@ -87,11 +103,43 @@ WSGI_APPLICATION = "mon_projet.wsgi.application"
 # DATABASE
 # =========================================================
 
-DATABASES = {
-    "default": dj_database_url.config(
-        default=os.getenv("DATABASE_URL")
-    )
-}
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    # Render et GitHub Actions
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+        )
+    }
+else:
+    # Local / Docker
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv(
+                "POSTGRES_DB",
+                "certificate_dev",
+            ),
+            "USER": os.getenv(
+                "POSTGRES_USER",
+                "django_user",
+            ),
+            "PASSWORD": os.getenv(
+                "POSTGRES_PASSWORD",
+                "django_password",
+            ),
+            "HOST": os.getenv(
+                "POSTGRES_HOST",
+                "127.0.0.1",
+            ),
+            "PORT": os.getenv(
+                "POSTGRES_PORT",
+                "5432",
+            ),
+        }
+    }
 
 
 # =========================================================
@@ -147,7 +195,9 @@ STATIC_URL = "/static/"
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_STORAGE = (
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"
+)
 
 
 # =========================================================
@@ -159,4 +209,3 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/carte/"
 LOGOUT_REDIRECT_URL = "/login/"
-
