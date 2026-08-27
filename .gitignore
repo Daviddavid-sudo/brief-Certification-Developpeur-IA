@@ -8,7 +8,5 @@ __pycache__/
 *.pyd
 *.log
 *.sqlite3
-*.geojson
-*.json
 *.deb
 *.csv

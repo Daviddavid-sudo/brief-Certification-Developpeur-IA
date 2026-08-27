@@ -13,7 +13,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 # =========================================================
 
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-key")
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    "django-insecure-dev-key",
+)
 
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
@@ -24,8 +27,6 @@ ALLOWED_HOSTS = [
     "brief-certification-developpeur-ia.onrender.com",
 ]
 
-# Ajouter d'autres hosts depuis une variable d'environnement
-# si nécessaire
 extra_hosts = os.getenv("ALLOWED_HOSTS", "")
 
 if extra_hosts:
@@ -106,7 +107,6 @@ WSGI_APPLICATION = "mon_projet.wsgi.application"
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
-    # Render et GitHub Actions
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
@@ -114,7 +114,6 @@ if DATABASE_URL:
         )
     }
 else:
-    # Local / Docker
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -183,7 +182,6 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -192,7 +190,6 @@ USE_TZ = True
 # =========================================================
 
 STATIC_URL = "/static/"
-
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_STORAGE = (
@@ -209,3 +206,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/carte/"
 LOGOUT_REDIRECT_URL = "/login/"
+
