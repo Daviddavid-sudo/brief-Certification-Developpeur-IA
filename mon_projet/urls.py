@@ -1,41 +1,25 @@
 from django.contrib import admin
 from django.contrib.auth.views import LogoutView
-from django.urls import path, include
+from django.urls import include, path
 
 from dashboard.views import (
-    landing_page,
-
     CustomLoginView,
-
-    register,
-
-    carte_ventes_view,
-
-    consultation_meteo,
-
-    carte_population_view,
-
-    ai_assistant_view,
-
-    health_check,
-
-    product_list_view,
-
-    activite_list,
-
     activite_create,
-
-    activite_update,
-
     activite_delete,
-
-    users_view,
-
+    activite_list,
+    activite_update,
+    ai_assistant_view,
     approve_user,
-
+    carte_population_view,
+    carte_ventes_view,
+    consultation_meteo,
+    health_check,
+    landing_page,
+    product_list_view,
+    register,
     reject_user,
+    users_view,
 )
-
 
 urlpatterns = [
 

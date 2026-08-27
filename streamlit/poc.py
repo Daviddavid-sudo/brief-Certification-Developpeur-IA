@@ -1,8 +1,10 @@
-import streamlit as st
-import pandas as pd
+import os
+
 import geopandas as gpd
 import matplotlib.pyplot as plt
-import os
+import pandas as pd
+
+import streamlit as st
 
 # --- CONFIG & ASSETS ---
 st.set_page_config(page_title="France Data Dashboard", layout="wide")

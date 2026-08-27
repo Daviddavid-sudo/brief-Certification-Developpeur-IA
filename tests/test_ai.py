@@ -1,4 +1,5 @@
 from django.test import TestCase
+
 from dashboard.services import (
     is_database_question,
     normalize_result,

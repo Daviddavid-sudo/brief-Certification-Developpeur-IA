@@ -1,32 +1,37 @@
-import os
-import io
 import base64
+import io
 import json
 import logging
+import os
 
-import pandas as pd
 import geopandas as gpd
 import matplotlib
-matplotlib.use("Agg")
+import pandas as pd
 
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
+matplotlib.use("Agg")
 
 from datetime import datetime
 
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.views import LoginView
 from django.contrib.auth.models import User
+from django.contrib.auth.views import LoginView
 from django.db import connection
-from django.db.models import Sum, Q
+from django.db.models import Q, Sum
 from django.http import JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+
+from dashboard.services import (
+    ask_llm_about_db,
+    execute_ai_sql,
+)
 
 from .models import (
     ActiviteCommerciale,
@@ -34,12 +39,6 @@ from .models import (
     Population,
     UserProfile,
 )
-
-from dashboard.services import (
-    ask_llm_about_db,
-    execute_ai_sql,
-)
-
 
 # ============================================================
 # LOGGER
@@ -405,7 +404,6 @@ def product_list_view(request):
 
             with open(
                 file_path,
-                "r",
                 encoding="utf-8"
             ) as f:
 

@@ -1,7 +1,10 @@
 import csv
 import os
+
 from django.core.management.base import BaseCommand
+
 from dashboard.models import Population
+
 
 class Command(BaseCommand):
     help = 'Importe les données de population INSEE depuis un CSV'
@@ -17,7 +20,7 @@ class Command(BaseCommand):
             return
 
         try:
-            with open(path, 'r', encoding='utf-8-sig') as f:
+            with open(path, encoding='utf-8-sig') as f:
                 # Detect if the separator is ; or ,
                 line = f.readline()
                 dialect = ';' if ';' in line else ','

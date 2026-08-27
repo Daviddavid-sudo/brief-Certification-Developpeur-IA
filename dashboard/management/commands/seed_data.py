@@ -1,5 +1,7 @@
 from django.core.management.base import BaseCommand
+
 from dashboard.models import ActiviteCommerciale, Population
+
 
 class Command(BaseCommand):
     help = 'Clears table and seeds CA data with strong seasonality (1.0x vs 3.0x)'

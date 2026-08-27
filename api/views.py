@@ -1,20 +1,20 @@
 from time import time
 
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework import status
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
-
-from .serializers import AIQuerySerializer
-from .metrics import (
-    AI_REQUEST_COUNT,
-    AI_ERROR_COUNT,
-    AI_RESPONSE_TIME
-)
 
 from dashboard.services import ask_llm_about_db
+
+from .metrics import AI_ERROR_COUNT, AI_REQUEST_COUNT, AI_RESPONSE_TIME
+from .serializers import AIQuerySerializer
 
 
 @api_view(["POST"])

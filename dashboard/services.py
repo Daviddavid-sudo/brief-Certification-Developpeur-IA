@@ -1,19 +1,16 @@
+import ast
+import logging
 import os
 import re
-import ast
 import urllib.parse
-import logging
 
 from django.conf import settings
 from django.db import connection
-
-from langchain_groq import ChatGroq
 from langchain_community.utilities import SQLDatabase
-from langchain_experimental.sql import SQLDatabaseChain
 from langchain_core.prompts import PromptTemplate
-
+from langchain_experimental.sql import SQLDatabaseChain
+from langchain_groq import ChatGroq
 from prometheus_client import Counter
-
 
 logger = logging.getLogger("ai_monitoring")
 

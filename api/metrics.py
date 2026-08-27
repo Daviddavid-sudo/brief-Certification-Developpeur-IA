@@ -1,6 +1,5 @@
 from prometheus_client import Counter, Histogram
 
-
 AI_REQUEST_COUNT = Counter(
     "ai_requests_total",
     "Nombre total de requêtes IA"

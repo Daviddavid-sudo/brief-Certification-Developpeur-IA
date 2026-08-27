@@ -1,7 +1,10 @@
 import os
+from unittest.mock import MagicMock, patch
+
 from django.test import TestCase
-from unittest.mock import patch, MagicMock
+
 from dashboard.services import ask_llm_about_db
+
 
 class MLOpsValidation(TestCase):
     def test_model_targets_correct_tables(self):

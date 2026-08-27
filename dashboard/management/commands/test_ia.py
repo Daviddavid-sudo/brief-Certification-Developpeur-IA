@@ -1,5 +1,7 @@
 from django.core.management.base import BaseCommand
+
 from dashboard.services import ask_llm_about_db
+
 
 class Command(BaseCommand):
     help = "Teste le service LangChain/Groq"

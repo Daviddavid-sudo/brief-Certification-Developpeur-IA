@@ -1,9 +1,12 @@
-import requests
 import time
 from datetime import datetime
+
+import requests
 from django.core.management.base import BaseCommand
-from dashboard.models import MeteoArchive
 from django.db import transaction
+
+from dashboard.models import MeteoArchive
+
 
 class Command(BaseCommand):
     help = 'Récupère la météo pour TOUTE l\'année 2025'
