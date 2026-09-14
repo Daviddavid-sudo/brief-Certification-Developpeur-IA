@@ -526,6 +526,169 @@
 
 
 /* =========================================================
+   PREDICTION
+========================================================= */
+
+.prediction-card {
+    margin-top: 18px;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+.prediction-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 17px 20px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.prediction-title {
+    margin: 0;
+
+    color: #1f2937;
+
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.prediction-description {
+    margin: 4px 0 0;
+
+    color: #9ca3af;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   PREDICTION BUTTON
+========================================================= */
+
+.prediction-button {
+    padding: 9px 14px;
+
+    background: #2563eb;
+
+    border: 1px solid #2563eb;
+    border-radius: 7px;
+
+    color: #ffffff;
+
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.prediction-button:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+}
+
+.prediction-button:disabled {
+    background: #9ca3af;
+    border-color: #9ca3af;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   PREDICTION CONTENT
+========================================================= */
+
+.prediction-content {
+    padding: 15px 20px;
+}
+
+.prediction-loading {
+    display: none;
+
+    padding: 25px;
+
+    color: #9ca3af;
+
+    font-size: 12px;
+
+    text-align: center;
+}
+
+.prediction-error {
+    display: none;
+
+    padding: 15px;
+
+    background: #fef2f2;
+
+    border: 1px solid #fecaca;
+
+    border-radius: 7px;
+
+    color: #b91c1c;
+
+    font-size: 12px;
+
+    text-align: center;
+}
+
+.prediction-table {
+    display: none;
+
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.prediction-table th {
+    padding: 10px 12px;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    color: #6b7280;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    text-align: left;
+}
+
+.prediction-table td {
+    padding: 10px 12px;
+
+    border-bottom: 1px solid #f3f4f6;
+
+    color: #374151;
+
+    font-size: 12px;
+}
+
+.prediction-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.prediction-table td:last-child {
+    color: #2563eb;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
    EMPTY
 ========================================================= */
 
@@ -652,7 +815,8 @@
         min-height: 450px;
     }
 
-    .evolution-header {
+    .evolution-header,
+    .prediction-header {
         align-items: flex-start;
         flex-direction: column;
     }
@@ -681,6 +845,10 @@
         align-items: flex-start;
         flex-direction: column;
         gap: 5px;
+    }
+
+    .prediction-button {
+        width: 100%;
     }
 
 }
@@ -1087,6 +1255,314 @@
 </section>
 
 
+<!-- =====================================================
+     PRÉVISION CA 2030
+====================================================== -->
+
+<section class="prediction-card">
+
+
+    <header class="prediction-header">
+
+        <div>
+
+            <h2 class="prediction-title">
+                Prévision du chiffre d'affaires 2030
+            </h2>
+
+            <p class="prediction-description">
+                Lancez une prévision du chiffre d'affaires
+                à partir des données disponibles.
+            </p>
+
+        </div>
+
+
+        <button
+            type="button"
+            id="prediction-button"
+            class="prediction-button"
+        >
+            Lancer la prédiction
+        </button>
+
+    </header>
+
+
+    <div class="prediction-content">
+
+
+        <div
+            id="prediction-loading"
+            class="prediction-loading"
+        >
+            Calcul de la prévision...
+        </div>
+
+
+        <div
+            id="prediction-error"
+            class="prediction-error"
+        >
+            Impossible de charger les prévisions.
+        </div>
+
+
+        <table
+            id="prediction-table"
+            class="prediction-table"
+        >
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Département
+                    </th>
+
+                    <th>
+                        CA 2024
+                    </th>
+
+                    <th>
+                        CA prévisionnel 2030
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody
+                id="prediction-body"
+            >
+            </tbody>
+
+        </table>
+
+
+    </div>
+
+</section>
+
+
 </div>
+
+
+<!-- =====================================================
+     API PRÉVISION
+====================================================== -->
+
+<script>
+
+document
+    .getElementById("prediction-button")
+    .addEventListener(
+        "click",
+        function() {
+
+            const button =
+                document.getElementById(
+                    "prediction-button"
+                );
+
+            const loading =
+                document.getElementById(
+                    "prediction-loading"
+                );
+
+            const errorElement =
+                document.getElementById(
+                    "prediction-error"
+                );
+
+            const table =
+                document.getElementById(
+                    "prediction-table"
+                );
+
+            const body =
+                document.getElementById(
+                    "prediction-body"
+                );
+
+
+            /* Désactiver le bouton */
+
+            button.disabled = true;
+
+            button.textContent =
+                "Calcul en cours...";
+
+
+            /* Afficher le chargement */
+
+            loading.style.display =
+                "block";
+
+            errorElement.style.display =
+                "none";
+
+            table.style.display =
+                "none";
+
+
+            /* Supprimer les anciens résultats */
+
+            body.innerHTML = "";
+
+
+            /* Appel de l'API Django */
+
+            fetch(
+                "/api/v1/prediction/"
+            )
+
+                .then(
+                    function(response) {
+
+                        if (!response.ok) {
+
+                            throw new Error(
+                                "Erreur lors de l'appel de l'API."
+                            );
+
+                        }
+
+                        return response.json();
+
+                    }
+                )
+
+
+                .then(
+                    function(data) {
+
+                        loading.style.display =
+                            "none";
+
+
+                        if (!data.success) {
+
+                            throw new Error(
+                                "La prédiction n'est pas disponible."
+                            );
+
+                        }
+
+
+                        /* Ajouter les résultats */
+
+                        data.predictions.forEach(
+                            function(prediction) {
+
+                                const row =
+                                    document.createElement(
+                                        "tr"
+                                    );
+
+
+                                const departmentCell =
+                                    document.createElement(
+                                        "td"
+                                    );
+
+                                departmentCell.textContent =
+                                    prediction.code_dept;
+
+
+                                const ca2024Cell =
+                                    document.createElement(
+                                        "td"
+                                    );
+
+                                ca2024Cell.textContent =
+                                    prediction.ca_2024.toLocaleString(
+                                        "fr-FR"
+                                    ) + " €";
+
+
+                                const ca2030Cell =
+                                    document.createElement(
+                                        "td"
+                                    );
+
+                                ca2030Cell.textContent =
+                                    prediction.ca_2030.toLocaleString(
+                                        "fr-FR"
+                                    ) + " €";
+
+
+                                row.appendChild(
+                                    departmentCell
+                                );
+
+                                row.appendChild(
+                                    ca2024Cell
+                                );
+
+                                row.appendChild(
+                                    ca2030Cell
+                                );
+
+
+                                body.appendChild(
+                                    row
+                                );
+
+                            }
+                        );
+
+
+                        /* Afficher le tableau */
+
+                        table.style.display =
+                            "table";
+
+
+                        /* Réactiver le bouton */
+
+                        button.disabled =
+                            false;
+
+                        button.textContent =
+                            "Relancer la prédiction";
+
+                    }
+                )
+
+
+                .catch(
+                    function(error) {
+
+                        console.error(
+                            "Prediction error:",
+                            error
+                        );
+
+
+                        loading.style.display =
+                            "none";
+
+
+                        errorElement.style.display =
+                            "block";
+
+
+                        button.disabled =
+                            false;
+
+                        button.textContent =
+                            "Lancer la prédiction";
+
+                    }
+                );
+
+        }
+    );
+
+</script>
+
 
 {% endblock %}

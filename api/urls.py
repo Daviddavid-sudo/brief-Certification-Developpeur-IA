@@ -1,9 +1,32 @@
 from django.urls import path
 
-from .views import AIEndpointView, ai_query
+from .views import (
+    AIEndpointView,
+    ai_query,
+    prediction,
+)
+
 
 urlpatterns = [
-    # This 'name' must match the reverse() in your tests
-    path('api/ai-endpoint/', AIEndpointView.as_view(), name='ai_api_endpoint'),
-    path('api/ai-query/', ai_query, name='ai_query'),
+
+    # API IA
+    path(
+        'ai-endpoint/',
+        AIEndpointView.as_view(),
+        name='ai_api_endpoint'
+    ),
+
+    path(
+        'ai-query/',
+        ai_query,
+        name='ai_query'
+    ),
+
+    # API prédiction CA 2030
+    path(
+        'prediction/',
+        prediction,
+        name='prediction'
+    ),
+
 ]
