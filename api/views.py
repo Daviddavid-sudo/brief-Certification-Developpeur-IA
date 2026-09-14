@@ -13,10 +13,19 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from dashboard.models import ActiviteCommerciale
+from dashboard.models import (
+    ActiviteCommerciale,
+    Population,
+)
+
 from dashboard.services import ask_llm_about_db
 
-from .metrics import AI_ERROR_COUNT, AI_REQUEST_COUNT, AI_RESPONSE_TIME
+from .metrics import (
+    AI_ERROR_COUNT,
+    AI_REQUEST_COUNT,
+    AI_RESPONSE_TIME,
+)
+
 from .serializers import AIQuerySerializer
 
 
@@ -33,7 +42,9 @@ def ai_query(request):
 
     start_time = time()
 
-    serializer = AIQuerySerializer(data=request.data)
+    serializer = AIQuerySerializer(
+        data=request.data
+    )
 
     if not serializer.is_valid():
 
@@ -183,7 +194,7 @@ def prediction(request):
         # Récupération du CA 2024 par département
         # ----------------------------------------------------
 
-        ventes_2025 = (
+        ventes_2024 = (
             ActiviteCommerciale.objects
             .filter(
                 annee=2024
@@ -205,7 +216,7 @@ def prediction(request):
         # Calcul de la prédiction
         # ----------------------------------------------------
 
-        for vente in ventes_2025:
+        for vente in ventes_2024:
 
             ca_2024 = float(
                 vente["ca_2024"] or 0
@@ -272,3 +283,61 @@ def prediction(request):
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ============================================================
+# API - DONNÉES VENTES
+# ============================================================
+
+@api_view(["GET"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def ventes(request):
+
+    data = (
+        ActiviteCommerciale.objects
+        .values(
+            "code_dept",
+            "ville",
+            "ca_tot",
+            "mois",
+            "annee"
+        )
+        .order_by(
+            "annee",
+            "mois",
+            "code_dept"
+        )
+    )
+
+    return Response({
+        "success": True,
+        "data": list(data)
+    })
+
+
+# ============================================================
+# API - DONNÉES POPULATION
+# ============================================================
+
+@api_view(["GET"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def population(request):
+
+    data = (
+        Population.objects
+        .values(
+            "dep",
+            "departement",
+            "pop"
+        )
+        .order_by(
+            "dep"
+        )
+    )
+
+    return Response({
+        "success": True,
+        "data": list(data)
+    })
